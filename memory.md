@@ -10,6 +10,7 @@ Last updated: 2026-09-12 (Session 1)
 - **`src/mock/demo-drawings.ts`** (+ spec, 6 тестов, TDD red→green): идеальная сцена A(300,100), B(300,320), C(520,320), D(520,100), M — середина AB (все 4 правила Success при ε=3); сцена с отклонениями — BC повёрнут на −5.88° вокруг B (∠ABC = 84.12°, точный текст ТЗ) и M(300,340) за точкой B (Fail point-on-segment).
 - **UI-компоненты в `src/ui/`**: `types.ts` (RULE_OPTIONS с русскими подписями, EPS_MIN/MAX/STEP = 0.5/10/0.5, AppState, formatEpsilon), `upload-zone.ts` (DnD + скрытый input + клавиатура + ошибка для не-изображения), `rule-select.ts`, `epsilon-slider.ts` (`<output class="mono">`), `canvas-view.ts` (DPR-масштаб, шахматка, вписывание 800×600, оверлей: сегменты accent/вершины ink-3/метки info), `verdict-badge.ts`, `verdict-card.ts` (aria-live), `app.ts` (`createApp`: топбар со статус-точкой → карточка холста с upload-зоной → контролы («Проверить») → карточка вердикта).
 - **`main.ts`** переписан на `createApp(app)`; `styles.css` дополнен токен-only стилями; `.gitkeep` в `src/ui` и `src/mock` удалены.
+- **QA-харнесс живой проверки `scripts/qa/ui-shell.mjs` (`pnpm qa`):** puppeteer (dev-only) + headless **system Chrome** (`channel: 'chrome'`, Chromium-загрузка пропущена через `allowBuilds: puppeteer: false` + `ignoredBuiltDependencies`); сам поднимает `vite preview` для `dist/`; 9 проверок (топбар, авто-вердикт, чернила на холсте, смена правила, точный текст ТЗ при ε=3, флип Success при ε=6, кнопка «Проверить», мягкая ошибка для не-изображения, чистая консоль с фильтром favicon-404). Паттерн перенят из cost-guard-ai.
 
 ### Decisions made
 
@@ -24,17 +25,18 @@ Last updated: 2026-09-12 (Session 1)
 - Параллельный запуск гейтов в одном вызове: `pnpm format --write` и `format:check` гонялись → ложный FAIL. Гейты запускать последовательно или только `cmd /c`-обёрткой.
 - editor-замена с неполным old_text склеила строки в `verdict-card.ts` — починено повторным чтением файла и точечной правкой (всегда перечитывать файл после неожиданного diff).
 - Обёртка `cmd /c "pnpm.cmd … && echo PASS || echo FAIL"` из Observation 2 применена ко всем гейтам — работает.
+- **puppeteer QA:** `page.waitForFunction(fn, arg)` кладёт `arg` в *options* (второй параметр — options, аргументы только после `{}`) → тихий вечный undefined в колбэке; правильно `waitForFunction(fn, {}, arg)`. `pnpm add puppeteer` даёт `ERR_PNPM_IGNORED_BUILDS` (exit 1) и ломает последующие `pnpm`-скрипты через deps-check — лечится `allowBuilds: puppeteer: false` + `ignoredBuiltDependencies: [puppeteer]` в `pnpm-workspace.yaml` (Chromium не качаем — системный Chrome).
+- Старый листенер на QA-порту легко спутать с багом приложения — при диагностике сначала `Get-NetTCPConnection -LocalPort <port>`.
 
 ### Current state
 
-- **Фаза 1 (01) завершена по всем автоматическим гейтам:** `test` 16/16, `typecheck`, `lint` 0/0, `format:check`, `build`; preview-смоук `dist/` — HTTP 200.
-- **Живая проверка в браузере не выполнялась агентом** — ожидает подтверждения пользователя (`pnpm dev`: демо-чертёж, смена правила, ползунок ε (на «отклонениях» Success↔Fail), «Проверить», превью изображения, не-изображение → ошибка, консоль чистая).
-- `context/progress-tracker.md`, `context/ui-registry.md` (все компоненты shipped + Patterns от `/imprint`), `context/build-plan.md` (чеклист) обновлены.
+- **Фаза 1 (01) завершена полностью, включая живую проверку:** юнит 16/16, `typecheck`, `lint` 0/0, `format:check`, `build`; headless Chrome QA — **9/9** (`pnpm qa`, system Chrome, `dist/` preview).
+- `context/progress-tracker.md`, `context/ui-registry.md` (все компоненты shipped + Patterns от `/imprint`), `context/build-plan.md` (чеклист), `context/library-docs.md` (секция Puppeteer) обновлены.
 
 ### Next session starts with
 
 - **Фаза 2 — 02 Line detection (OpenCV.js):** `src/pipeline/lines.ts` по TDD (grayscale → HoughLinesP → фильтр < 30 px → `LineSegment[]`), ленивый `await import('@techstark/opencv-js')`; перед стартом прочитать `context/library-docs.md`.
-- Если живая проверка UI выявит баги — сначала `/systematic-debugging`, потом фикс.
+- Новый UI в Фазах 2–4 дополнять проверками в `scripts/qa/ui-shell.mjs` (харнесс уже поднимает сервер и браузер).
 
 ### Open questions
 

@@ -18,7 +18,7 @@ Update this file after every completed feature. Any agent reading this should im
 
 ### Phase 1 — UI Shell (mock data)
 
-- [x] 01 Upload + rule selection + ε slider + verdict card (UI-компоненты в `src/ui/`; mock = `src/mock/demo-drawings.ts` + настоящий `verify()`; 16/16 тестов; гейты зелёные; живая проверка в браузере — по подтверждению пользователя)
+- [x] 01 Upload + rule selection + ε slider + verdict card (UI-компоненты в `src/ui/`; mock = `src/mock/demo-drawings.ts` + настоящий `verify()`; 16/16 юнит-тестов; гейты зелёные; живая проверка — headless QA 9/9 через `pnpm qa`)
 
 ### Phase 2 — CV Pipeline
 

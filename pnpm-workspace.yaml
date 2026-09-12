@@ -1,4 +1,9 @@
 # Single-package repo — config for pnpm supply-chain defaults.
 # tesseract.js postinstall is only the opencollective donation notice (`... || true`) — safe to run.
 allowBuilds:
+  puppeteer: false
   tesseract.js: true
+# puppeteer is dev-only QA (system Chrome via channel:'chrome') — its postinstall
+# (bundled Chromium download) is intentionally skipped; see context/library-docs.md.
+ignoredBuiltDependencies:
+  - puppeteer

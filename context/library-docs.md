@@ -29,3 +29,10 @@
 ## oxlint / Prettier
 
 - `pnpm lint` (oxlint, fast); `pnpm format` / `pnpm format:check` (Prettier). Both local — no CI server (GitHub only for final upload).
+
+## Puppeteer (dev-only QA, not shipped)
+
+- Headless live-verification: `pnpm qa` → `scripts/qa/ui-shell.mjs` — serves `dist/` via `vite preview` (spawned from the script) and drives the **system Chrome** via `launch({ channel: 'chrome' })`.
+- Chromium download is intentionally skipped: puppeteer's postinstall build script stays unapproved in pnpm (`allowBuilds` intentionally does NOT list puppeteer; `ERR_PNPM_IGNORED_BUILDS` on add is expected and harmless).
+- Gotchas (inherited from cost-guard-ai QA): callbacks passed to `page.evaluate` / `page.waitForFunction` must be self-contained — closures over Node scope do not cross into the page; Chrome logs expected network noise (favicon 404) as console errors — filter explicitly in sweeps.
+- For range inputs, set `.value` and dispatch `new Event('input', { bubbles: true })` — the app listens on `input`.
