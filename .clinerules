@@ -33,6 +33,7 @@ Cline-specific working rules for this repo. `AGENTS.md` and `context/*` are the 
   2. `pnpm build` and a `pnpm preview` smoke of `dist/`
   3. **Live verification** for user-visible features: real browser over the real UI — happy path + one unhappy path, console sweep; "verified visually" only from an executed session or explicit user confirmation.
 - **One commit per feature.** Do the TDD red/green cycles uncommitted; at "done", deliver everything as a single `feat(<scope>): <feature>` commit (plus the tracker/memory update in the same commit or one `chore(memory)` commit). Squash intermediate commits if any.
+- **Commit message = subject only, always one line** (Conventional Commits, English). No body, no multiline messages — ever. Unpushed local commits may be reworded (`--amend` / soft-reset + stash) to enforce this.
 - After every feature: update `context/progress-tracker.md`, `context/ui-registry.md`, and `memory.md` (via `/remember save` before commits).
 
 ## 5. Failure protocol

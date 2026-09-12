@@ -8,7 +8,7 @@ Binding TypeScript/conventions for this repo. Violations are review blockers.
 - Formatting: 2-space, single quotes, semicolons, 100 cols — Prettier enforced via `pnpm format:check`.
 - Lint: **oxlint** (`pnpm lint`). Prettier for formatting.
 - **No `any`; no untyped cross-module payloads.** Public pipeline API fully typed.
-- Conventional commits: `feat:`, `fix:`, `chore:`, `test:`, `docs:`, `refactor:`, `build:`.
+- Conventional commits: `feat:`, `fix:`, `chore:`, `test:`, `docs:`, `refactor:`, `build:` — **subject only, always one line, no body**.
 - Tests: **Vitest 4** co-located `*.spec.ts`; pipeline-target coverage ≥ 90%.
 
 ## Pipeline (`src/pipeline/`)

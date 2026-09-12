@@ -19,6 +19,7 @@ Last updated: 2026-09-12 (Session 1)
 - Загруженное изображение в Фазе 1 — только превью (`URL.createObjectURL` + revoke предыдущего); анализ — после Фаз 2–4 (честная плашка в canvas-note).
 - Бейдж и статус-точка: Success → «Верно»/ok; Fail|Error → «Ошибка»/danger.
 - Цвета canvas читаются из CSS custom properties (`getComputedStyle`) — правило «только токены» соблюдено и в canvas (там нет разметки).
+- **Коммит-сообщение — всегда одна строка** (subject Conventional Commits, без body); правило зафиксировано в `.clinerules` §4 и `context/code-standards.md`. Два коммита сессии переписаны в однострочные (`c35481d`, `9caa5ea`).
 
 ### Problems solved
 
