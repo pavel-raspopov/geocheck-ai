@@ -37,7 +37,7 @@ geometry/
 
 ## Pipeline (ТЗ §2)
 
-1. **lines** — bitmap → grayscale → detect segments (any orientation, min 30 px).
+1. **lines** — bitmap → grayscale → Canny → detect segments (any orientation, min 30 px).
 2. **dedup** — cluster segments: angle diff ≤ 5° AND euclidean distance ≤ 7 px → merge to the two farthest endpoints.
 3. **ocr** — single Latin letters A–Z (uppercase), center coordinates.
 4. **graph** — vertex = intersection of deduped segments; bind letter → nearest vertex ≤ 40 px.

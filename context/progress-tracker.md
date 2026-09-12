@@ -6,9 +6,9 @@ Update this file after every completed feature. Any agent reading this should im
 
 ## Current Status
 
-**Phase:** Phase 1 — UI Shell **done** ✓ (01, mock data)
-**Last completed:** 01 Upload + rule selection + ε slider + verdict card (2026-09-12; демо-чертежи + настоящий `verify()`)
-**Next / open point:** Phase 2 — 02 Line detection (OpenCV.js)
+**Phase:** Phase 2 — CV Pipeline **в работе** (02 ✅, 03 — следующая)
+**Last completed:** 02 Line detection (OpenCV.js) — `src/pipeline/lines.ts` (2026-09-12; grayscale → Canny → HoughLinesP; 22/22 юнит-тестов, гейты зелёные)
+**Next / open point:** Phase 2 — 03 Deduplication
 
 ## Progress
 
@@ -22,7 +22,7 @@ Update this file after every completed feature. Any agent reading this should im
 
 ### Phase 2 — CV Pipeline
 
-- [ ] 02 Line detection (OpenCV.js)
+- [x] 02 Line detection (OpenCV.js) (`src/pipeline/lines.ts`: grayscale → Canny → HoughLinesP → фильтр ≥ 30 px; 6 новых тестов на синтетике; Vitest: `test.server.deps.inline` + `deps.interopDefault: false`)
 - [ ] 03 Deduplication
 
 ### Phase 3 — OCR + Graph

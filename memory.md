@@ -1,6 +1,41 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-12 (Session 1)
+Last updated: 2026-09-12 (Session 2)
+
+## Session 2 — Phase 2: 02 Line detection (OpenCV.js)
+
+### What was built
+
+- **Фича 02 «Line detection» реализована по TDD.** План: `docs/superpowers/plans/2026-09-12-line-detection.md`.
+- **`src/pipeline/lines.ts`** (+ spec, 6 тестов, red→green): `RawImage` (структурный аналог ImageData, без DOM-типов) → `detectSegments(): Promise<LineSegment[]>`; внутри `cv.matFromArray(CV_8UC4)` → `cvtColor(COLOR_RGBA2GRAY)` → `Canny(50,150)` → `HoughLinesP` → фильтр ≥ `MIN_SEGMENT_LENGTH`; детерминированная сортировка (длина ↓) и id `seg-N`; `try/finally` с `.delete()` всех Mat.
+- **`src/pipeline/constants.ts`**: добавлены не-ТЗ константы Canny/Hough (`CANNY_LOW=50`, `CANNY_HIGH=150`, `HOUGH_THRESHOLD=30`, `HOUGH_MAX_GAP=8`).
+- **`vitest.config.ts`**: `test.server.deps.inline: ['@techstark/opencv-js']` + `test.deps.interopDefault: false`.
+
+### Decisions made
+
+- **Canny обязателен перед HoughLinesP**: Hough считает непустые пиксели точками-кандидатами; на чёрно-белом чертеже белый фон «заливает» аккумулятор (симптом: сотни диагоналей ±45°). Зафиксировано в `library-docs.md` и комментарии в `lines.ts`.
+- Загрузка cv — README-паттерн (default-interop UMD) + **race-safe ожидание WASM** (`onRuntimeInitialized` может уже отработать → опрос `cv.Mat` каждые 50 мс).
+- Тесты — property-based на синтетике (Брезенхэм толщиной 3), не на точных координатах: Hough не даёт бит-точных концов.
+
+### Problems solved
+
+- **Vitest × opencv-js UMD:** `await import('@techstark/opencv-js')` в Vitest падал мгновенно с `TypeError: Method Promise.prototype.then called on incompatible receiver [object Module]`. Причина: interop Vitest-оценщика (`interopModule`) дергает `.then` на namespace. Лечится **двумя** ключами под `test`: `server.deps.inline` + `deps.interopDefault: false`; на корневом уровне конфига ключи молча игнорируются (потрачено несколько итераций).
+- Отладочный ход: смоук в plain Node (`scripts/tmp-*.mjs`, удалены) показал, что динамический import в Node работает, а ломается только Vitest-interop — локализовало проблему.
+- Вывод результата HoughLinesP: `rows=1`, `cols=N`, `CV_32SC4`; `data32S` читается четвёрками (x1,y1,x2,y2) — не rows×1, как в классическом C++ API.
+
+### Current state
+
+- **Фаза 2 (02) завершена:** 22/22 юнит-тестов, `typecheck`, `lint` 0/0, `format:check`, `build` — зелёные. Стадия ещё не подключена к UI (подключение — Фаза 4/06), в `dist/` tree-shaken.
+- Обновлены: `context/progress-tracker.md`, `context/build-plan.md`, `context/architecture.md` (стадия 1: + Canny), `context/library-docs.md` (полная секция OpenCV.js с проверенным паттерном).
+
+### Next session starts with
+
+- **Фаза 2 — 03 Deduplication:** `src/pipeline/dedup.ts` по TDD (кластеризация: Δугла ≤ 5° И расстояние ≤ 7 px; слияние кластера в один отрезок по двум дальним концам; детерминированные тесты — чистый TS, без OpenCV).
+- Возможный подвох: у отрезков-дублей после Hough толщина даёт ~2 параллельных сегмента (±2 px) — это входной случай 03.
+
+### Open questions
+
+- Tesseract.js: локальный бандл `tessdata` vs CDN — решить на фазе 04 (OCR).
 
 ## Session 1 — Phase 1 UI shell (build-plan 01)
 

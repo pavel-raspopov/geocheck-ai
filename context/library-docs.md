@@ -13,12 +13,26 @@
 - Run: `pnpm test`. Config in `vitest.config.ts` (`include: src/**/*.spec.ts`).
 - Pure TS stages need no environment; add `environment: 'jsdom'` only when UI/DOM tests appear (Phase 1+).
 
-## OpenCV.js (`@techstark/opencv-js`)
+## OpenCV.js (`@techstark/opencv-js` 5.0.0 — verified 2026-09-12)
 
-- WASM build of OpenCV, usable from browsers and Node (so Vitest can run stage logic too).
-- Pattern: **lazy load** — `const { cv } = await import('@techstark/opencv-js')` inside async stage functions (keeps the hot path light; large wasm is fetched once).
-- Useful calls: `cv.imdecode` (ArrayBuffer → Mat), `cv.cvtColor` (BGR → GRAY), `cv.Canny`, and **`cv.HoughLinesP`** for segment detection (ТЗ stage 1; filter < 30 px).
-  - Check the current package README for the exact WASM-loading incantation under Vite (may require serving `*.wasm` from `/public` or a `?url` import) — record it here after Phase 2 verification.
+- WASM build of OpenCV, usable from browsers **and Node (Vitest)** — stage logic is unit-testable.
+- **Loading (verified pattern, `src/pipeline/lines.ts`):**
+  ```ts
+  const mod = (await import('@techstark/opencv-js')) as unknown as {
+    default: Promise<CvLike> | CvLike;
+  };
+  const cv = mod.default instanceof Promise ? await mod.default : mod.default;
+  // then wait for runtime init: if (!cv.Mat) await onRuntimeInitialized (race-safe: also poll)
+  ```
+  UMD/CJS build: default-interop export IS the `cv` object. TypeScript types are namespace-only (`import type { CV } from "@techstark/opencv-js"`); the `default` value needs a cast.
+- **Vitest gotcha (critical):** dynamic import of this UMD dep fails instantly with `TypeError: Method Promise.prototype.then called on incompatible receiver [object Module]` unless `test.server.deps.inline` lists it **and** `test.deps.interopDefault: false` — both under the `test` key of `vitest.config.ts` (root-level keys are silently ignored). Config in place.
+- **Runtime init is async:** after import, `cv.Mat` may be undefined until WASM compiles (~5 s cold). `onRuntimeInitialized` may have fired before you attach it — pair the callback with polling (`cv.Mat` presence, see `waitRuntimeInitialized` in `lines.ts`).
+- **Mat construction without canvas:** `cv.matFromArray(height, width, cv.CV_8UC4, rgbaArrayLike)` — flat interleaved RGBA, row-major (Uint8ClampedArray works; structurally ImageData).
+- **Verified pipeline for line detection:** `cvtColor(rgba, gray, COLOR_RGBA2GRAY)` → **`Canny(gray, edges, 50, 150, 3, false)`** → `HoughLinesP(edges, lines, 1, π/180, threshold, minLineLength, maxLineGap)`.
+  - **Canny is mandatory before Hough**: Hough treats every non-zero pixel as an edge point; on a black-lines-on-white drawing the white background floods the accumulator (symptom: only ±45° diagonals, hundreds of them).
+  - `HoughLinesP` result Mat: `rows=1`, `cols=N`, type `CV_32SC4`; read `lines.data32S` in groups of 4 → `x1, y1, x2, y2`.
+- Every `cv.Mat` must be `.delete()`ed (WASM heap) — use try/finally.
+- Tuning constants live in `src/pipeline/constants.ts` (`CANNY_LOW/HIGH`, `HOUGH_THRESHOLD`, `HOUGH_MAX_GAP`); `minLineLength` = `MIN_SEGMENT_LENGTH` (ТЗ).
 
 ## Tesseract.js
 

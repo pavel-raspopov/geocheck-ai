@@ -26,9 +26,9 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 ## Phase 2 — CV Pipeline
 
-### 02 Line detection (OpenCV.js)
+### 02 Line detection (OpenCV.js) ✅
 
-**Logic:** `lines.ts` — load image (data URL / ImageData), grayscale, `HoughLinesP`; filter segments < 30 px; return `LineSegment[]`. Tests with small synthetic drawings.
+**Logic:** `lines.ts` — load image (data URL / ImageData), grayscale, `HoughLinesP`; filter segments < 30 px; return `LineSegment[]`. Tests with small synthetic drawings. **Done 2026-09-12** (grayscale → Canny → HoughLinesP; Vitest требует `test.server.deps.inline` + `test.deps.interopDefault: false`).
 
 ### 03 Deduplication
 
@@ -69,7 +69,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 - [x] 00 Project scaffold + AI harness
 - [x] 01 Upload + rule selection + ε slider
-- [ ] 02 Line detection (OpenCV.js)
+- [x] 02 Line detection (OpenCV.js)
 - [ ] 03 Deduplication
 - [ ] 04 OCR (Tesseract.js)
 - [ ] 05 Graph assembly

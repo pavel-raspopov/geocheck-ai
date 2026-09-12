@@ -17,3 +17,17 @@ export const EPS_DEFAULT = 3.0;
 
 /** Округление чисел в сообщениях (ТЗ §5: «84.12° … 5.88°»). */
 export const MESSAGE_DECIMALS = 2;
+
+/* --- Внутренние параметры CV-стадий (не из ТЗ; подобраны на синтетике) --- */
+
+/** Нижний порог Canny перед Hough (стадия lines). */
+export const CANNY_LOW = 50;
+
+/** Верхний порог Canny перед Hough (стадия lines). */
+export const CANNY_HIGH = 150;
+
+/** Минимальное число голосов в аккумуляторе HoughLinesP. */
+export const HOUGH_THRESHOLD = 30;
+
+/** Максимальный разрыв точек внутри отрезка HoughLinesP, px. */
+export const HOUGH_MAX_GAP = 8;
