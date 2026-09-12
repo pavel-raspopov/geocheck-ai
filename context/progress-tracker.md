@@ -6,9 +6,9 @@ Update this file after every completed feature. Any agent reading this should im
 
 ## Current Status
 
-**Phase:** Phase 0 — Initialization **done** ✓ (scaffold + AI harness + git init)
-**Last completed:** 00 Project scaffold + AI harness (2026-09-12)
-**Next / open point:** Phase 1 — 01 UI shell (upload + rules + ε slider, mock data)
+**Phase:** Phase 1 — UI Shell **done** ✓ (01, mock data)
+**Last completed:** 01 Upload + rule selection + ε slider + verdict card (2026-09-12; демо-чертежи + настоящий `verify()`)
+**Next / open point:** Phase 2 — 02 Line detection (OpenCV.js)
 
 ## Progress
 
@@ -18,7 +18,7 @@ Update this file after every completed feature. Any agent reading this should im
 
 ### Phase 1 — UI Shell (mock data)
 
-- [ ] 01 Upload + rule selection + ε slider + verdict card
+- [x] 01 Upload + rule selection + ε slider + verdict card (UI-компоненты в `src/ui/`; mock = `src/mock/demo-drawings.ts` + настоящий `verify()`; 16/16 тестов; гейты зелёные; живая проверка в браузере — по подтверждению пользователя)
 
 ### Phase 2 — CV Pipeline
 

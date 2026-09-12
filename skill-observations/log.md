@@ -32,6 +32,21 @@
 
 **Principle:** Validate tool exit codes at the layer where the tool sets them (shell), not where the host re-interprets raw output streams (PowerShell stderr handling).
 
+### Observation 3: writing-plans' "offer execution choice" clashes with Cline plan/act
+
+**Status:** OPEN
+**Date:** 2026-09-12
+**Session context:** Phase 1 UI shell (GeoCheck AI) executed from a plan the user had already approved in plan mode.
+**Skill:** writing-plans
+**Type:** open-source
+**Phase/Area:** plan execution handoff
+
+**Issue:** `writing-plans` ends by offering a choice ("subagent-driven vs inline execution"). In a plan/act harness the user has already made the execution decision by approving the act-mode switch; re-asking duplicates a decision already made and adds friction in short sessions.
+
+**Suggested improvement:** In `writing-plans`, add a handoff rule: if the harness has a plan/approval flow where the user explicitly approved the plan before execution, skip the execution-choice offer (or persist the chosen mode in the plan header) and proceed inline unless the user asks otherwise.
+
+**Principle:** Do not re-collect a decision the user has already made through the approval flow; record it once and act on it.
+
 ## Archive
 
 See `archive/` for closed observations (moved here during weekly reviews).

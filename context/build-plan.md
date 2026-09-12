@@ -68,7 +68,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 ## Phase Checklist (mirrors progress-tracker)
 
 - [x] 00 Project scaffold + AI harness
-- [ ] 01 Upload + rule selection + ε slider
+- [x] 01 Upload + rule selection + ε slider
 - [ ] 02 Line detection (OpenCV.js)
 - [ ] 03 Deduplication
 - [ ] 04 OCR (Tesseract.js)
