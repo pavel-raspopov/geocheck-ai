@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "skills": {
+    "architect": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/architect/SKILL.md",
+      "computedHash": ""
+    },
+    "brainstorming": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/brainstorming/SKILL.md",
+      "computedHash": ""
+    },
+    "executing-plans": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/executing-plans/SKILL.md",
+      "computedHash": ""
+    },
+    "feature-review": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/feature-review/SKILL.md",
+      "computedHash": ""
+    },
+    "imprint": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/imprint/SKILL.md",
+      "computedHash": ""
+    },
+    "recover": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/recover/SKILL.md",
+      "computedHash": ""
+    },
+    "remember": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/remember/SKILL.md",
+      "computedHash": ""
+    },
+    "systematic-debugging": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/systematic-debugging/SKILL.md",
+      "computedHash": ""
+    },
+    "test-driven-development": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/test-driven-development/SKILL.md",
+      "computedHash": ""
+    },
+    "using-superpowers": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/using-superpowers/SKILL.md",
+      "computedHash": ""
+    },
+    "verification-before-completion": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/verification-before-completion/SKILL.md",
+      "computedHash": ""
+    },
+    "writing-plans": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/writing-plans/SKILL.md",
+      "computedHash": ""
+    },
+    "task-observer": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".claude/skills/task-observer/SKILL.md",
+      "computedHash": ""
+    }
+  }
+}

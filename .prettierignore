@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+pnpm-lock.yaml
+memory.md
+product-brief.md
+.agents/
+.claude/
+skill-observations/
+skill-updates/
+docs/superpowers/plans/

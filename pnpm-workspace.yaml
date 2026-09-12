@@ -1,0 +1,4 @@
+# Single-package repo — config for pnpm supply-chain defaults.
+# tesseract.js postinstall is only the opencollective donation notice (`... || true`) — safe to run.
+allowBuilds:
+  tesseract.js: true

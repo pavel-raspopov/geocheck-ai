@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/apps/oxlint/oxlint.schema.json",
+  "ignorePatterns": [
+    ".agents/**",
+    ".claude/**",
+    ".git/**",
+    "dist/**",
+    "docs/**",
+    "node_modules/**",
+    "public/**",
+    "skill-observations/**",
+    "skill-updates/**"
+  ],
+  "rules": {}
+}

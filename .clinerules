@@ -1,0 +1,49 @@
+# .clinerules — GeoCheck AI
+
+Cline-specific working rules for this repo. `AGENTS.md` and `context/*` are the canonical source; this file is the everyday operating contract. Read it entirely before the first tool call of a session.
+
+## 1. Context efficiency (token budget)
+
+- **Load context docs on demand**, never "just in case". Read order for implementation work: `context/project-brief.md` → `architecture.md` → the one doc the subtask touches (e.g. `ui-tokens.md` for UI work) → `build-plan.md` → `progress-tracker.md`.
+- Report to the user in 3–5 concise bullets (done / files / verification). Do not dump reasoning transcripts.
+- Max 2–3 search attempts before asking the user. Ban exhaustive repo scans.
+
+## 2. Before writing code
+
+1. Confirm the current build-plan phase and `progress-tracker` status.
+2. Confirm the feature has a test path (Vitest) and — for UI — a mock-data step.
+3. Follow the stack's non-negotiables (below); check `library-docs.md` before touching a listed library.
+4. **Session start:** at the start of any task-oriented session, load `.claude/skills/task-observer/SKILL.md` and follow its Session Start Protocol (check/update `skill-observations/log.md`).
+
+## 3. Non-negotiable conventions
+
+- **Vanilla TS + Vite SPA only.** No framework, no Tailwind, no backend, no database. Everything runs in the browser (WASM: OpenCV.js + Tesseract.js).
+- **Pipeline logic is pure functions** in `src/pipeline/` (types/constants + stage modules): TDD with Vitest, no DOM/I/O inside. Geometry thresholds are constants in `src/pipeline/constants.ts` — 30 px, 5°, 7 px, 40 px, ε = 3.0 — never inline.
+- TypeScript **strict** (incl. `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`); no `any`; every module boundary typed.
+- **UI:** design tokens from `ui-tokens.md` (canonical) + root `DESIGN.md` (mirror) only — no raw hex/palette classes; numbers in `font-num` + `tabular-nums`.
+- **UI copy in Russian; ТЗ message strings are contract** — soft error `[Status: Error] Точка X не найдена на чертеже`; fail `Ошибка: Угол ABC на рисунке равен 84.12°, отклонение составляет 5.88°`.
+- **Secrets:** never write real keys/tokens into tracked files. There is no `.env` in this repo (browser-only).
+
+## 4. Feature lifecycle
+
+- `writing-plans` → save plan to `docs/superpowers/plans/<YYYY-MM-DD>-<feature>.md`
+- Build UI with mock data first (when applicable) → verify visually → wire logic
+- **Verification ladder before "done"** (see verification-before-completion skill):
+  1. `pnpm test` + `pnpm typecheck` + `pnpm lint`
+  2. `pnpm build` and a `pnpm preview` smoke of `dist/`
+  3. **Live verification** for user-visible features: real browser over the real UI — happy path + one unhappy path, console sweep; "verified visually" only from an executed session or explicit user confirmation.
+- **One commit per feature.** Do the TDD red/green cycles uncommitted; at "done", deliver everything as a single `feat(<scope>): <feature>` commit (plus the tracker/memory update in the same commit or one `chore(memory)` commit). Squash intermediate commits if any.
+- After every feature: update `context/progress-tracker.md`, `context/ui-registry.md`, and `memory.md` (via `/remember save` before commits).
+
+## 5. Failure protocol
+
+- One corrective prompt per bug. If it recurs: stop → `/systematic-debugging` → root cause → only then fix. If a second attempt fails, `/recover`.
+- Never "fix" by weakening types or abandoning tests.
+
+## 6. Skills
+
+- Skills are installed in-repo (vendored): superpowers suite at `.agents/skills/<name>/SKILL.md`, task-observer at `.claude/skills/task-observer/`. `skills-lock.json` records pinned paths. No remote-ops skills — everything runs locally; GitHub is only for the final upload.
+
+## 7. Session end
+
+- `/remember save` (edits `memory.md`, committed to git), verify working tree state, summarize next steps in 3 bullets.

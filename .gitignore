@@ -1,0 +1,28 @@
+# ---- Dependencies ----
+node_modules/
+
+# ---- Builds & artifacts ----
+dist/
+coverage/
+*.tsbuildinfo
+
+# ---- Logs & temp ----
+*.log
+.tmp/
+
+# ---- Environment & secrets (none expected — browser-only app) ----
+.env
+.env.*
+
+# ---- IDE ----
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- AI-agent session/observation files (tracked: memory.md, skills-lock.json) ----
+skill-observations/**/*.bak*
+skill-observations/last-review-date.txt
