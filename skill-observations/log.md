@@ -47,6 +47,36 @@
 
 **Principle:** Do not re-collect a decision the user has already made through the approval flow; record it once and act on it.
 
+### Observation 4: Git add/commit/status batched in one parallel block → index.lock collision
+
+**Status:** OPEN
+**Date:** 2026-09-12
+**Session context:** Feature 02 commit (GeoCheck AI Phase 2); `git add` + `git commit` + `git log` emitted as parallel tool calls in one block.
+**Skill:** executing-plans
+**Type:** open-source
+**Phase/Area:** delivery / git commit step
+
+**Issue:** Three git invocations launched concurrently collided: `git commit` died with `fatal: Unable to create '.git/index.lock': File exists`, and the follow-up `git log` raced ahead of the commit (showed a stale HEAD). Recovered by killing git, removing the stale lock, and re-running add+commit sequentially.
+
+**Suggested improvement:** In `executing-plans` (delivery step), state that git operations on the same repository are dependent calls — run them sequentially in one shell invocation (`add; commit`), never as parallel tool calls.
+
+**Principle:** Calls that mutate shared mutable state (index, HEAD) are never independent, even though they look like separate commands.
+
+### Observation 5: UMD/CJS deps need `test.server.deps.inline` + `test.deps.interopDefault: false` in Vitest 5 — and root-level config keys are silently ignored
+
+**Status:** OPEN
+**Date:** 2026-09-12
+**Session context:** Wiring `@techstark/opencv-js` into Vitest for stage-1 unit tests (GeoCheck AI).
+**Skill:** library-docs / test-driven-development
+**Type:** open-source
+**Phase/Area:** test tooling / CJS interop
+
+**Issue:** Dynamic `import()` of a large UMD dep failed instantly in Vitest with `TypeError: Method Promise.prototype.then called on incompatible receiver [object Module]` (Vitest's `interopModule` proxy calls `.then` on the namespace). Adding `server.deps.inline` / `deps.interopDefault` at the config ROOT had no effect — they only work under the `test` key; the silent ignore cost several debug iterations.
+
+**Suggested improvement:** In `test-driven-development` (or a library-docs note), add: "Vitest 5 + UMD/CJS dependency that breaks on import → set `test.server.deps.inline: [<pkg>]` and `test.deps.interopDefault: false`; both must live under `test`." Also recommend isolating with a plain-Node dynamic-import smoke to prove the dep itself loads.
+
+**Principle:** Validate that a config fix is actually read (config keys can be silently misplaced) before concluding the fix doesn't work.
+
 ## Archive
 
 See `archive/` for closed observations (moved here during weekly reviews).
