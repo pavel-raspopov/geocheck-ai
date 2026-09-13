@@ -12,6 +12,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "qa": "pnpm build && node scripts/qa/ui-shell.mjs",
+    "shot": "pnpm build && node scripts/qa/screenshot.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
