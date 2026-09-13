@@ -1,6 +1,45 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-13 (Session 3)
+Last updated: 2026-09-13 (Session 4)
+
+## Session 4 — Phase 3: 04 OCR (Tesseract.js)
+
+### What was built
+
+- **Фича 04 «OCR» реализована по TDD.** План: `docs/superpowers/plans/2026-09-13-ocr.md`. Спайк перед планом: проверены `node_modules/tesseract.js@7.0.0` (createWorker/loadImage/setImage/dump/getCore) и `tesseract.js-core@7.0.0`.
+- **`src/pipeline/ocr.ts`** (+ spec, 9 тестов, red→green): `encodeBmp(image: RawImage): Uint8Array` — чистый кодировщик RGBA→BMP 24bpp (v7 `loadImage` НЕ принимает сырые пиксели; воркер ловит BMP по magic 'BM' и ре-кодирует через bmp-js); `extractLabels(page: OcrPage): Label[]` — чистый пост-фильтр (uppercase, строгий [A-Z], conf ≥ `OCR_MIN_CONFIDENCE`=60, центр bbox, порядок cy↑/cx↑); `recognizeLabels(image, overrides?)` — ленивый `import('tesseract.js')`, воркер кэшируется на модуль (аналог `cvPromise`), PSM '11' sparse, `cacheMethod:'none'`.
+- **Оффлайн-bundle (решён открытый вопрос: локальный bundle вместо CDN):** `public/tessdata/eng.traineddata.gz` (~3 MB, `@tesseract.js-data/eng/4.0.0_best_int`) + `public/tesseract/` (`worker.min.js` + 3 LSTM-core варианта, ~20.4 MB). Node/Vitest: ядро и воркер из node_modules (`workerPath`/`corePath` НЕ задавать!), только `langPath: 'public/tessdata'`; браузер: `/tessdata`, `/tesseract/worker.min.js`, `/tesseract`.
+- **Константы** в `constants.ts` (не из ТЗ): `OCR_LANG`, `OCR_CHAR_WHITELIST`, `OCR_MIN_CONFIDENCE=60`, `OCR_PSM='11'`, `OCR_USER_DPI='96'`.
+- `.prettierignore` += `public/` (prettier переформатировал vendored `worker.min.js`/`*.wasm.js` — восстановлены байт-в-байт из node_modules).
+
+### Decisions made
+
+- **tessdata = локальный bundle, не CDN** (выбор пользователя): полностью оффлайн, детерминированные тесты/деплой; цена ~23 MB в `public/`. Открытый вопрос из сессий 0–3 закрыт.
+- **`oem` = дефолтный LSTM_ONLY; whitelist не работает в LSTM** → строгий `[A-Z]`-фильтр обязателен в нашем коде (соответствует ТЗ «автоприведение к UPPERCASE»).
+- **Output запрашивать явно:** дефолт v7 `recognize` = только `{text:true}`; для bbox нужен `{blocks:true,text:false}` (JSON-дерево `GetJSONText()`).
+- Extraction устойчив: символы с приоритетом, fallback на word-уровень (если LSTM-only core не отдаёт symbols).
+
+### Problems solved
+
+- Спайк предотвратил неверный план: library-docs утверждал API `createTesseract` — на деле v7 = `createWorker(langs, oem, options)`; доки переписаны.
+- Сырые пиксели (ImageData-подобный RawImage) воркер молча трактует как закодированные байты — нужен BMP-кодер (выбран BMP: без сжатия, magic-детект в `setImage`, работает в браузере и Node одинаково).
+- Блочные диагональные глифы 5×7 (A, B, M) LSTM систематически misчитает (A→E, B→H, M теряется); осестойчивые (E, H, L) — читает стабильно → фикстуры интеграционного теста переведены на E/H/L (масштаб ×16, холст 640×200).
+- TS strict после «зелёных» Vitest-тестов: генератор типизирован `Generator<OcrSymbolLike>` (word extends symbol), фикстуры `wordOf(...)` строят полноценные word-узлы.
+- Prettier трогает vendored JS в `public/` → исключить каталог до `format`, восстанавливать файлы из node_modules при инциденте.
+
+### Current state
+
+- **Фаза 3 (04) завершена:** 41/41 юнит-тестов (интеграция на реальном WASM ~0.35 s), `typecheck`, `lint` 0/0, `format:check`, `build` — зелёные. Стадии по-прежнему не подключены к UI (Фаза 4/06); ocr в `dist/` tree-shaken.
+- Обновлены: `context/library-docs.md` (Tesseract-раздел переписан по v7), `context/architecture.md` (стадия 3), `context/build-plan.md`, `context/progress-tracker.md`.
+
+### Next session starts with
+
+- **Фаза 3 — 05 Graph assembly:** `src/pipeline/graph.ts` — пересечения дедуплицированных отрезков → вершины; привязка каждой метки к ближайшей вершине ≤ 40 px (иначе drop/soft-note); вход — вывод `deduplicateSegments` + `recognizeLabels`; сначала `/writing-plans`. Не забыть `context/architecture.md` §граф и константу `LABEL_RADIUS`.
+- После 05 — Фаза 4/06: подключение реального пайплайна к UI + acceptance-тесты ТЗ §5.
+
+### Open questions
+
+- Нет открытых. (Ранее: tessdata — решён: локальный bundle.)
 
 ## Session 3 — Phase 2: 03 Deduplication
 

@@ -6,9 +6,9 @@ Update this file after every completed feature. Any agent reading this should im
 
 ## Current Status
 
-**Phase:** Phase 2 — CV Pipeline **в работе** (02 ✅, 03 ✅, 04 — следующая)
-**Last completed:** 03 Deduplication — `src/pipeline/dedup.ts` (2026-09-13; кластеризация Δугла ≤ 5° И расстояние ≤ 7 px (мин. расстояние отрезок↔отрезок), транзитивный union-find, слияние по двум дальним концам; 32/32 юнит-тестов, гейты зелёные)
-**Next / open point:** Phase 3 — 04 OCR (Tesseract.js)
+**Phase:** Phase 3 — OCR + Graph **в работе** (04 ✅, 05 — следующая)
+**Last completed:** 04 OCR — `src/pipeline/ocr.ts` (2026-09-13; `recognizeLabels`: RawImage → pure-TS BMP 24bpp → tesseract.js v7 worker (LSTM_ONLY, PSM 11, локальный bundle `public/tessdata` + `public/tesseract`, `cacheMethod:'none'`, воркер кэшируется на модуль) → чистый пост-фильтр `extractLabels` (uppercase, строгий [A-Z], conf ≥ 60, центр bbox, детерминированный порядок); 41/41 юнит-тестов (9 новых, интеграция на реальном WASM ~0.35 s), гейты зелёные; LSTM игнорирует `tessedit_char_whitelist` — пост-фильтр обязателен)
+**Next / open point:** Phase 3 — 05 Graph assembly (`src/pipeline/graph.ts`)
 
 ## Progress
 
@@ -27,7 +27,7 @@ Update this file after every completed feature. Any agent reading this should im
 
 ### Phase 3 — OCR + Graph
 
-- [ ] 04 OCR (Tesseract.js)
+- [x] 04 OCR (Tesseract.js) (`src/pipeline/ocr.ts`: `recognizeLabels` — RawImage → pure-TS BMP 24bpp (`encodeBmp`; v7 не принимает сырые пиксели) → воркер tesseract.js v7 (LSTM_ONLY, PSM 11, локальный bundle `public/tessdata/eng.traineddata.gz` + `public/tesseract/`, `cacheMethod:'none'`) → чистый пост-фильтр `extractLabels` (uppercase, [A-Z], conf ≥ 60, центр bbox); 9 тестов, интеграция на реальном WASM; LSTM игнорирует whitelist — фильтр в коде обязателен)
 - [ ] 05 Graph assembly
 
 ### Phase 4 — Verification Engine

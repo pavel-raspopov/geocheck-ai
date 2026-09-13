@@ -34,11 +34,19 @@
 - Every `cv.Mat` must be `.delete()`ed (WASM heap) — use try/finally.
 - Tuning constants live in `src/pipeline/constants.ts` (`CANNY_LOW/HIGH`, `HOUGH_THRESHOLD`, `HOUGH_MAX_GAP`); `minLineLength` = `MIN_SEGMENT_LENGTH` (ТЗ).
 
-## Tesseract.js
+## Tesseract.js (v7.0.0 — verified 2026-09-13)
 
-- Pure-JS OCR compiled to WASM. New API: `createTesseract(options)` → `tesseract.recognize(image)` (check current docs; older `Tesseract` class is deprecated).
-- For offline use, point `enginePath`/`tessdata` to a local copy (e.g. `public/tessdata/eng.traineddata`); decide local bundle vs CDN in Phase 4 (see memory open question).
-- Post-filter OCR output to strict `[A-Z]` (uppercase, ТЗ §3.1); take the bounding box center as label coordinates.
+- Pure-JS OCR compiled to WASM. **API (verified against `node_modules/tesseract.js@7.0.0`):** `createWorker(langs = 'eng', oem = OEM.LSTM_ONLY, options)` → `worker.recognize(image, options, output)` → `worker.setParameters({...})` → `worker.terminate()`. The deprecated top-level `recognize()` creates a worker per call — never use it. (Older note claiming a `createTesseract` API was wrong.)
+- **Image input:** `loadImage` accepts paths/URLs/dataURLs, HTML elements (IMG/CANVAS/VIDEO), OffscreenCanvas, File/Blob (browser) or **encoded** byte arrays (Node `Buffer`/`Uint8Array`). It does **NOT** accept raw pixel arrays (ImageData / `{data,width,height}`). The worker's `setImage` detects BMP by magic bytes `BM` and re-encodes it for Leptonica via bmp-js — so our pipeline encodes `RawImage` → 24bpp BMP in pure TS (`encodeBmp` in `ocr.ts`); a plain `Uint8Array` of BMP bytes works in both browser and Node.
+- **Output:** default `recognize` output is `{ text: true }` **only** — request `{ blocks: true, text: false }` explicitly to get the JSON tree (`GetJSONText()`): `blocks[].paragraphs[].lines[].words[].symbols[]`, nodes with `text`, `confidence` (0–100), `bbox {x0,y0,x1,y1}`.
+- **Char whitelist caveat:** LSTM engine (default) **ignores** `tessedit_char_whitelist` (it only affects the legacy engine) → the strict `[A-Z]` post-filter lives in our code (`extractLabels`); the parameter is still set harmlessly.
+- **Local bundle (chosen over CDN, session 4):** `public/tessdata/eng.traineddata.gz` (`@tesseract.js-data/eng/4.0.0_best_int`, ~3 MB) + `public/tesseract/` (`worker.min.js` + the three LSTM-only core variants `tesseract-core-{lstm,simd-lstm,relaxedsimd-lstm}.{wasm,wasm.js}`; browser `getCore` loads `tesseract-core-<simd-cap>-lstm.wasm.js` from the `corePath` directory). `gzip: true` (default) matches the `.gz` file; gzip is detected by magic bytes.
+  - **Browser:** `langPath: '/tessdata'`, `workerPath: '/tesseract/worker.min.js'`, `corePath: '/tesseract'`.
+  - **Node/Vitest:** core + worker resolve locally from `node_modules` — do **NOT** set `workerPath`/`corePath` (breaks the node worker); only `langPath: 'public/tessdata'` (cwd-relative).
+  - `cacheMethod: 'none'` disables cache read/write (deterministic, no stray `.traineddata` in cwd).
+- **Parameters we set:** `tessedit_pageseg_mode: '11'` (PSM SPARSE_TEXT for scattered vertex labels), `tessedit_char_whitelist: 'A–Z'`, `user_defined_dpi: '96'`.
+- **Gotcha:** raw pixel arrays are silently mis-processed if passed directly (worker treats bytes as encoded image) — always go through the BMP encoder.
+- Unit-testable without a browser: pipeline stage is tested in Vitest (Node worker thread) with synthetic pixel-font letters; diagonal-free glyphs (E/H/L) are read reliably, blocky diagonals (A/B/M 5×7) get misread — keep test letters axis-aligned.
 
 ## oxlint / Prettier
 

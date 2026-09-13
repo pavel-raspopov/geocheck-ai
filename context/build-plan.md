@@ -38,9 +38,9 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 ## Phase 3 — OCR + Graph
 
-### 04 OCR (Tesseract.js)
+### 04 OCR (Tesseract.js) ✅
 
-**Logic:** `ocr.ts` — recognize single Latin letters A–Z (uppercase filter), return center coordinates; decide local `tessdata` bundling vs CDN (see library-docs / memory open question).
+**Logic:** `ocr.ts` — recognize single Latin letters A–Z (uppercase filter), return center coordinates; decide local `tessdata` bundling vs CDN (see library-docs / memory open question). **Done 2026-09-13** (`recognizeLabels`: RawImage → pure-TS BMP 24bpp → tesseract.js v7 worker (LSTM, PSM 11, локальный bundle `public/tessdata`+`public/tesseract`, `cacheMethod:'none'`) → чистый пост-фильтр `extractLabels` (uppercase, [A-Z], conf ≥ 60, центр bbox); 9 тестов, интеграция на реальном WASM; oem LSTM игнорирует whitelist — фильтр обязателен).
 
 ### 05 Graph assembly
 
@@ -71,7 +71,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 01 Upload + rule selection + ε slider
 - [x] 02 Line detection (OpenCV.js)
 - [x] 03 Deduplication
-- [ ] 04 OCR (Tesseract.js)
+- [x] 04 OCR (Tesseract.js) (Done 2026-09-13)
 - [ ] 05 Graph assembly
 - [ ] 06 verify.ts + result UI
 - [ ] 07 Performance & polish

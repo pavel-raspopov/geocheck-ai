@@ -77,6 +77,36 @@
 
 **Principle:** Validate that a config fix is actually read (config keys can be silently misplaced) before concluding the fix doesn't work.
 
+### Observation 6: Prettier reformats vendored minified assets under `public/`
+
+**Status:** OPEN
+**Date:** 2026-09-13
+**Session context:** Feature 04 OCR (GeoCheck AI); staging tesseract.js `worker.min.js`/`*.wasm.js` into `public/tesseract/`, then running `pnpm format`.
+**Skill:** verification-before-completion / repo conventions
+**Type:** open-source
+**Phase/Area:** formatting gates / vendored static assets
+
+**Issue:** `prettier --write .` reformatted vendored minified JS assets (`worker.min.js`, `*.wasm.js`) copied into `public/` — byte-identity with the upstream package was silently lost (these are served verbatim to the browser worker; reformatting also risks subtle breakage and inflates diffs).
+
+**Suggested improvement:** In projects that vendor third-party runtime assets into `public/`, add `public/` to `.prettierignore` *before* the first `format` run; if already reformatted, restore byte-identical copies from the package source (`node_modules/...`) rather than trusting prettier's output.
+
+**Principle:** Formatting tools must never mutate vendored artifacts; exclusion has to precede the first run, not be discovered from a diff.
+
+### Observation 7: Validate in-repo library notes against the installed package before planning on them
+
+**Status:** OPEN
+**Date:** 2026-09-13
+**Session context:** Feature 04 OCR planning (GeoCheck AI); `context/library-docs.md` claimed tesseract.js exposes `createTesseract(options)`.
+**Skill:** library-docs / writing-plans
+**Type:** open-source
+**Phase/Area:** documentation accuracy / pre-implementation spike
+
+**Issue:** The project's own library-docs entry for tesseract.js described an API that does not exist in the installed version (`createWorker` is correct). Planning directly from the stale note would have produced non-compiling code; a 15-minute spike into `node_modules` (package.json, `src/index.d.ts`, `createWorker.js`, `worker-script/*`) caught it.
+
+**Suggested improvement:** In `writing-plans` (or library-docs conventions), add: before writing a plan that integrates a library, verify the claimed API against the *installed* package's types/source — in-repo notes can drift from the pinned version.
+
+**Principle:** Trust the pinned dependency's source over derived documentation; a spike is cheaper than a plan built on a wrong interface.
+
 ## Archive
 
 See `archive/` for closed observations (moved here during weekly reviews).

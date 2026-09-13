@@ -39,7 +39,7 @@ geometry/
 
 1. **lines** — bitmap → grayscale → Canny → detect segments (any orientation, min 30 px).
 2. **dedup** — cluster segments: angle diff ≤ 5° AND distance ≤ 7 px → merge to the two farthest endpoints. Approved interpretation: angle is direction-independent ([0°, 180°), diff = min(|a−b|, 180−|a−b|)); «distance» = minimum segment-to-segment distance (min over 4 endpoint→segment distances; 0 for overlapping collinear fragments); clustering is transitive (union-find); output deterministic (length ↓, ids `seg-N`). Implemented in `src/pipeline/dedup.ts` (`deduplicateSegments`, pure sync).
-3. **ocr** — single Latin letters A–Z (uppercase), center coordinates.
+3. **ocr** — single Latin letters A–Z (uppercase), center coordinates. Implemented in `src/pipeline/ocr.ts` (`recognizeLabels`, async): `RawImage` → pure-TS BMP encoder (v7 `loadImage` accepts no raw pixels; worker detects BMP magic and re-encodes for Leptonica) → tesseract.js worker (module-cached, LSTM_ONLY, PSM 11 sparse, local bundle `public/tessdata` + `public/tesseract`, `cacheMethod:'none'`) → pure post-filter `extractLabels` (LSTM ignores `tessedit_char_whitelist`): uppercase, strict `[A-Z]`, confidence ≥ 60, bbox center, deterministic order (cy ↑, cx ↑).
 4. **graph** — vertex = intersection of deduped segments; bind letter → nearest vertex ≤ 40 px.
 5. **verify** — selected rule with ε (default 3.0).
 

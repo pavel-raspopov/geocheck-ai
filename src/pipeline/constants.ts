@@ -31,3 +31,20 @@ export const HOUGH_THRESHOLD = 30;
 
 /** Максимальный разрыв точек внутри отрезка HoughLinesP, px. */
 export const HOUGH_MAX_GAP = 8;
+
+/* --- Параметры OCR-стадии (не из ТЗ; tesseract.js v7) --- */
+
+/** Языковая модель OCR (eng = латиница). */
+export const OCR_LANG = 'eng';
+
+/** Допустимые метки вершин: строго одиночные заглавные латинские буквы (ТЗ §3.1). */
+export const OCR_CHAR_WHITELIST = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+/** Минимальная уверенность распознавания символа, %. */
+export const OCR_MIN_CONFIDENCE = 60;
+
+/** Page segmentation mode 11 = «sparse text» для разбросанных меток вершин. */
+export const OCR_PSM = '11';
+
+/** DPI-подсказка, чтобы tesseract не отклонял изображение как слишком мелкое. */
+export const OCR_USER_DPI = '96';
