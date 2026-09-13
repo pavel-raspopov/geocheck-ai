@@ -42,9 +42,9 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 **Logic:** `ocr.ts` — recognize single Latin letters A–Z (uppercase filter), return center coordinates; decide local `tessdata` bundling vs CDN (see library-docs / memory open question). **Done 2026-09-13** (`recognizeLabels`: RawImage → pure-TS BMP 24bpp → tesseract.js v7 worker (LSTM, PSM 11, локальный bundle `public/tessdata`+`public/tesseract`, `cacheMethod:'none'`) → чистый пост-фильтр `extractLabels` (uppercase, [A-Z], conf ≥ 60, центр bbox); 9 тестов, интеграция на реальном WASM; oem LSTM игнорирует whitelist — фильтр обязателен).
 
-### 05 Graph assembly
+### 05 Graph assembly ✅
 
-**Logic:** `graph.ts` — compute intersections of deduped segments → vertices; bind each label to the nearest vertex ≤ 40 px (else drop/soft-note). Tests with the acceptance shapes.
+**Logic:** `graph.ts` — compute intersections of deduped segments → vertices; bind each label to the nearest vertex ≤ 40 px (else drop/soft-note). Tests with the acceptance shapes. **Done 2026-09-13** (`buildGraph`: кандидаты = концы отрезков ∪ пересечения в допуске 2 px; жадная кластеризация по 5 px, центроид; привязка ≤ `LABEL_RADIUS`, дубликаты букв — min-дистанция; вывод `GraphResult { graph, vertices, unboundLabels }`; 16 тестов + 3 интеграции с `verify`; утверждённая интерпретация: концы отрезков тоже вершины — иначе parallel/equal-segments не привязывают A/B/C/D).
 
 ---
 
@@ -72,6 +72,6 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 02 Line detection (OpenCV.js)
 - [x] 03 Deduplication
 - [x] 04 OCR (Tesseract.js) (Done 2026-09-13)
-- [ ] 05 Graph assembly
+- [x] 05 Graph assembly (Done 2026-09-13)
 - [ ] 06 verify.ts + result UI
 - [ ] 07 Performance & polish

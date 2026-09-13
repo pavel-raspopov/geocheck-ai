@@ -1,6 +1,41 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-13 (Session 4)
+Last updated: 2026-09-13 (Session 5)
+
+## Session 5 — Phase 3: 05 Graph assembly
+
+### What was built
+
+- **Фича 05 «Graph assembly» реализована по TDD.** План: `docs/superpowers/plans/2026-09-13-graph-assembly.md`.
+- **`src/pipeline/graph.ts`** (+ spec, 16 тестов, red→green): `buildGraph(segments, labels): GraphResult { graph: Record<string, Vertex>, vertices: Vertex[], unboundLabels: Label[] }` — чистая sync-функция (без DOM/WASM), паттерн dedup.ts. Кандидаты в вершины = **концы отрезков ∪ попарные пересечения**, лежащие в допуске `ON_SEGMENT_TOLERANCE`=2 px от обоих отрезков (пиксельный шум Hough); жадная кластеризация по `VERTEX_MERGE_RADIUS`=5 px (сортировка cy↑/cx↑, representative = первый участник, итог — центроид); привязка меток к ближайшей вершине ≤ `LABEL_RADIUS`=40 px, повторная буква — выигрывает привязка с минимальной дистанцией; вывод детерминирован (вершины cy↑/cx↑, labels вершин отсортированы).
+- **Константы** в `constants.ts` (не из ТЗ): `INTERSECTION_DENOM_EPS=1e-9`, `ON_SEGMENT_TOLERANCE=2`, `VERTEX_MERGE_RADIUS=5`.
+- Обновлены: `context/architecture.md` (стадия 4 + интерпретация), `context/build-plan.md` (05 ✅), `context/progress-tracker.md`.
+
+### Decisions made
+
+- **Концы отрезков считаются вершинами** (выбор пользователя): дословное «вершина = пересечение» из ТЗ ломает parallel/equal-segments — два отдельных параллельных отрезка не дают ни одного пересечения, метки A/B/C/D все drop → софт-ошибка на корректном чертеже. Зафиксировано в `context/architecture.md`.
+- Лишние вершины без меток (например, концы засечки-тика поперёк AB) безвредны: граф для verify определяют метки, а не набор вершин.
+- `graph` из `GraphResult` подаётся в `verify()` напрямую (те же объекты Vertex, что в `vertices`); `unboundLabels` — фид софт-нот для UI Фазы 4.
+
+### Problems solved
+
+- В тесте треугольника порядок вершин — cy↑: (100,100), (200,100), (100,200); первая правка ожиданий, не кода.
+- Фикстура «дубликат буквы»: вторая метка должна быть *ближе* к своей вершине (dist 2.24 < 5), иначе «closest wins» выбирает первую.
+- Пересечение прямых при коллинеарности/параллельности отсекается по `INTERSECTION_DENOM_EPS` — концы отрезков остаются кандидатами, поэтому коллинеарные A-M-B не теряют вершины в точках A и B.
+
+### Current state
+
+- **Фаза 3 (OCR + Graph) завершена полностью:** 57/57 юнит-тестов (16 новых, ~5 ms), `typecheck`, `lint` 0/0, `format:check`, `build` — зелёные. Стадии по-прежнему не подключены к UI; graph в `dist/` tree-shaken.
+- Пайплайн логически полный: lines → dedup → ocr → graph → verify (осталась только проводка).
+
+### Next session starts with
+
+- **Фаза 4 — 06 verify.ts + result UI:** проводка реального пайплайна (RawImage → `detectSegments` → `deduplicateSegments` → `recognizeLabels` → `buildGraph` → `verify`) в UI: оверлей отрезков/вершин/меток на холсте, софт-ноты из `unboundLabels`, acceptance-тесты ТЗ §5 (прямоугольный треугольник → Success; 84.12° при ε=3 → Fail с точным текстом; M за B → Fail). Сначала `/writing-plans`. UI живой → нужны проверки в `scripts/qa/ui-shell.mjs` + live-верификация в браузере.
+- Держать в голове: OCR-стадия async и тяжёлая (~WASM) — кнопка «Проверить» становится обязательным триггером (автопересчёт убрать для тяжёлого пути); бюджет ≤ 3 s меряется в Фазе 5.
+
+### Open questions
+
+- Нет открытых.
 
 ## Session 4 — Phase 3: 04 OCR (Tesseract.js)
 
