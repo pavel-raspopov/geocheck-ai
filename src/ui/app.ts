@@ -211,7 +211,12 @@ export function createApp(root: HTMLElement): void {
       state.analysis = null;
       update({ file, imageUrl: decoded.previewUrl, raw: decoded.raw });
       setVerdictPlaceholder(verdictCard, 'Изображение загружено. Нажмите «Проверить» для анализа.');
-    } catch {
+    } catch (error) {
+      // Ожидаемый путь (битое изображение): мягкая ошибка в UI, детали — в консоль.
+      console.error(
+        'Не удалось прочитать изображение:',
+        error instanceof Error ? error.stack : error,
+      );
       setVerdictPlaceholder(verdictCard, '[Status: Error] Не удалось прочитать изображение');
     } finally {
       setBusy(false);

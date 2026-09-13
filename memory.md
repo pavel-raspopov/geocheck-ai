@@ -24,6 +24,10 @@ Last updated: 2026-09-13 (Session 7)
 - **Двойной провал QA-шага 10 (даунскейл) — корневая причина найдена диагностическим дампом:** (1) метки в 45–75 px от вершин в масштабе анализа > LABEL_RADIUS 40; (2) главный фактор — глифы 128px (64px после ×0.5): штрихи ≥ 30 px создают competing-вершины, а билинейный даунскейл (smoothing low по умолчанию) размывал «C» — OCR молча терял метку → «Точка C не найдена». Рабочая фикстура: контент = геометрия шага 9 ×1.25 на 2000×1500 (даунскейл ×0.8, глифы 32px в анализе, центры ~28 px) + smoothing high. Правило: фикстуру пайплайна с даунскейлом проектировать в масштабе анализа (штрихи < 30 px И центры ≤ 40 px), не в масштабе холста.
 - PowerShell: `$eval` внутри double-quoted строки интерполируется в пусто при генерации кода через Replace — код-в-строках собирать single-quoted литералами.
 
+
+### Review fixes (/feature-review, same session)
+
+- Программный ревью 3 слоёв по всем фазам: PASS; из 3 Minors исправлены 2: (1) README «Мягкие ошибки» — восстановлен потерянный закрывающий backtick (PowerShell-эскейп backtick в double-quoted Replace — та же ловушка, что и `$eval`, набл. 13); (2) `onFile` логирует ошибку декода в консоль (как `runPipeline`), а QA-шаг 16 белелистит ожидаемое «Не удалось прочитать изображение» из шага 12. Minor 3 (автотест catch-пути `runPipeline`) отложен — для app.ts нет DOM-харнесса, отдельное решение. Гейты + QA 16/16 перепроверены после фиксов.
 ### Current state
 
 - 76/76 юнит-тестов, typecheck/lint/format/build зелёные, **live QA 16/16** (`pnpm qa`), консоль чистая. Коммит `feat(polish)` — в этой сессии.
@@ -58,6 +62,10 @@ Last updated: 2026-09-13 (Session 7)
 - Типовая ловушка Vitest-интеропа проявилась и в браузерном бандле (набл. 8); pnpm build с `>NUL` давал ложный PASS при упавшем tsc (набл. 11).
 - Удалены временные отладочные артефакты (debug-pipeline.mjs, qa-bmp.spec, ocr-probe, qa-fixtures, логи/BMP).
 
+
+### Review fixes (/feature-review, same session)
+
+- Программный ревью 3 слоёв по всем фазам: PASS; из 3 Minors исправлены 2: (1) README «Мягкие ошибки» — восстановлен потерянный закрывающий backtick (PowerShell-эскейп backtick в double-quoted Replace — та же ловушка, что и `$eval`, набл. 13); (2) `onFile` логирует ошибку декода в консоль (как `runPipeline`), а QA-шаг 16 белелистит ожидаемое «Не удалось прочитать изображение» из шага 12. Minor 3 (автотест catch-пути `runPipeline`) отложен — для app.ts нет DOM-харнесса, отдельное решение. Гейты + QA 16/16 перепроверены после фиксов.
 ### Current state
 
 - **Фаза 4 завершена (06 ✅):** 67/67 юнит-тестов, `typecheck`/`lint`/`format`/`build` зелёные, **live QA 12/12** (`pnpm qa`, headless Chrome): демо-режим (7 проверок) + реальный пайплайн ∠ABC=90° → Success + мгновенный пересчёт правила без OCR (soft-error «Точка D не найдена») + пустой чертёж → «не найдено отрезков» + чистая консоль.
@@ -92,6 +100,10 @@ Last updated: 2026-09-13 (Session 7)
 - Фикстура «дубликат буквы»: вторая метка должна быть *ближе* к своей вершине (dist 2.24 < 5), иначе «closest wins» выбирает первую.
 - Пересечение прямых при коллинеарности/параллельности отсекается по `INTERSECTION_DENOM_EPS` — концы отрезков остаются кандидатами, поэтому коллинеарные A-M-B не теряют вершины в точках A и B.
 
+
+### Review fixes (/feature-review, same session)
+
+- Программный ревью 3 слоёв по всем фазам: PASS; из 3 Minors исправлены 2: (1) README «Мягкие ошибки» — восстановлен потерянный закрывающий backtick (PowerShell-эскейп backtick в double-quoted Replace — та же ловушка, что и `$eval`, набл. 13); (2) `onFile` логирует ошибку декода в консоль (как `runPipeline`), а QA-шаг 16 белелистит ожидаемое «Не удалось прочитать изображение» из шага 12. Minor 3 (автотест catch-пути `runPipeline`) отложен — для app.ts нет DOM-харнесса, отдельное решение. Гейты + QA 16/16 перепроверены после фиксов.
 ### Current state
 
 - **Фаза 3 (OCR + Graph) завершена полностью:** 57/57 юнит-тестов (16 новых, ~5 ms), `typecheck`, `lint` 0/0, `format:check`, `build` — зелёные. Стадии по-прежнему не подключены к UI; graph в `dist/` tree-shaken.
@@ -131,6 +143,10 @@ Last updated: 2026-09-13 (Session 7)
 - TS strict после «зелёных» Vitest-тестов: генератор типизирован `Generator<OcrSymbolLike>` (word extends symbol), фикстуры `wordOf(...)` строят полноценные word-узлы.
 - Prettier трогает vendored JS в `public/` → исключить каталог до `format`, восстанавливать файлы из node_modules при инциденте.
 
+
+### Review fixes (/feature-review, same session)
+
+- Программный ревью 3 слоёв по всем фазам: PASS; из 3 Minors исправлены 2: (1) README «Мягкие ошибки» — восстановлен потерянный закрывающий backtick (PowerShell-эскейп backtick в double-quoted Replace — та же ловушка, что и `$eval`, набл. 13); (2) `onFile` логирует ошибку декода в консоль (как `runPipeline`), а QA-шаг 16 белелистит ожидаемое «Не удалось прочитать изображение» из шага 12. Minor 3 (автотест catch-пути `runPipeline`) отложен — для app.ts нет DOM-харнесса, отдельное решение. Гейты + QA 16/16 перепроверены после фиксов.
 ### Current state
 
 - **Фаза 3 (04) завершена:** 41/41 юнит-тестов (интеграция на реальном WASM ~0.35 s), `typecheck`, `lint` 0/0, `format:check`, `build` — зелёные. Стадии по-прежнему не подключены к UI (Фаза 4/06); ocr в `dist/` tree-shaken.
@@ -165,6 +181,10 @@ Last updated: 2026-09-13 (Session 7)
 - PowerShell: `cmd /c` требует цитировать весь аргумент (`cmd /c "pnpm.cmd test && echo PASS"`), иначе `&&` парсится самим PowerShell (дополнение к observation #2 в task-observer).
 - Prettier: новые файлы прогонять через `--write` до `format:check`.
 
+
+### Review fixes (/feature-review, same session)
+
+- Программный ревью 3 слоёв по всем фазам: PASS; из 3 Minors исправлены 2: (1) README «Мягкие ошибки» — восстановлен потерянный закрывающий backtick (PowerShell-эскейп backtick в double-quoted Replace — та же ловушка, что и `$eval`, набл. 13); (2) `onFile` логирует ошибку декода в консоль (как `runPipeline`), а QA-шаг 16 белелистит ожидаемое «Не удалось прочитать изображение» из шага 12. Minor 3 (автотест catch-пути `runPipeline`) отложен — для app.ts нет DOM-харнесса, отдельное решение. Гейты + QA 16/16 перепроверены после фиксов.
 ### Current state
 
 - **Фаза 2 (02, 03) завершена:** 32/32 юнит-тестов, `typecheck`, `lint` 0/0, `format:check`, `build` — зелёные. Стадии не подключены к UI (подключение — Фаза 4/06), dedup в `dist/` tree-shaken.
@@ -200,6 +220,10 @@ Last updated: 2026-09-13 (Session 7)
 - Отладочный ход: смоук в plain Node (`scripts/tmp-*.mjs`, удалены) показал, что динамический import в Node работает, а ломается только Vitest-interop — локализовало проблему.
 - Вывод результата HoughLinesP: `rows=1`, `cols=N`, `CV_32SC4`; `data32S` читается четвёрками (x1,y1,x2,y2) — не rows×1, как в классическом C++ API.
 
+
+### Review fixes (/feature-review, same session)
+
+- Программный ревью 3 слоёв по всем фазам: PASS; из 3 Minors исправлены 2: (1) README «Мягкие ошибки» — восстановлен потерянный закрывающий backtick (PowerShell-эскейп backtick в double-quoted Replace — та же ловушка, что и `$eval`, набл. 13); (2) `onFile` логирует ошибку декода в консоль (как `runPipeline`), а QA-шаг 16 белелистит ожидаемое «Не удалось прочитать изображение» из шага 12. Minor 3 (автотест catch-пути `runPipeline`) отложен — для app.ts нет DOM-харнесса, отдельное решение. Гейты + QA 16/16 перепроверены после фиксов.
 ### Current state
 
 - **Фаза 2 (02) завершена:** 22/22 юнит-тестов, `typecheck`, `lint` 0/0, `format:check`, `build` — зелёные. Стадия ещё не подключена к UI (подключение — Фаза 4/06), в `dist/` tree-shaken.
@@ -241,6 +265,10 @@ Last updated: 2026-09-13 (Session 7)
 - **puppeteer QA:** `page.waitForFunction(fn, arg)` кладёт `arg` в *options* (второй параметр — options, аргументы только после `{}`) → тихий вечный undefined в колбэке; правильно `waitForFunction(fn, {}, arg)`. `pnpm add puppeteer` даёт `ERR_PNPM_IGNORED_BUILDS` (exit 1) и ломает последующие `pnpm`-скрипты через deps-check — лечится `allowBuilds: puppeteer: false` + `ignoredBuiltDependencies: [puppeteer]` в `pnpm-workspace.yaml` (Chromium не качаем — системный Chrome).
 - Старый листенер на QA-порту легко спутать с багом приложения — при диагностике сначала `Get-NetTCPConnection -LocalPort <port>`.
 
+
+### Review fixes (/feature-review, same session)
+
+- Программный ревью 3 слоёв по всем фазам: PASS; из 3 Minors исправлены 2: (1) README «Мягкие ошибки» — восстановлен потерянный закрывающий backtick (PowerShell-эскейп backtick в double-quoted Replace — та же ловушка, что и `$eval`, набл. 13); (2) `onFile` логирует ошибку декода в консоль (как `runPipeline`), а QA-шаг 16 белелистит ожидаемое «Не удалось прочитать изображение» из шага 12. Minor 3 (автотест catch-пути `runPipeline`) отложен — для app.ts нет DOM-харнесса, отдельное решение. Гейты + QA 16/16 перепроверены после фиксов.
 ### Current state
 
 - **Фаза 1 (01) завершена полностью, включая живую проверку:** юнит 16/16, `typecheck`, `lint` 0/0, `format:check`, `build`; headless Chrome QA — **9/9** (`pnpm qa`, system Chrome, `dist/` preview).
@@ -281,6 +309,10 @@ Last updated: 2026-09-13 (Session 7)
 - oxlint 1.82: конфиг должен называться **`.oxlintrc.json`** (не `oxlint.json`) — иначе `ignorePatterns` не применялся при discovery и vendored-скиллы (`.agents/`, `.claude/`) попадали в линт (15 warning'ов на чужих скриптах). После переименования: 0 warnings.
 - Prettier: `product-brief.md` (ТЗ) и vendored-скиллы исключены из проверки через `.prettierignore` — ТЗ не трогаем форматированием.
 
+
+### Review fixes (/feature-review, same session)
+
+- Программный ревью 3 слоёв по всем фазам: PASS; из 3 Minors исправлены 2: (1) README «Мягкие ошибки» — восстановлен потерянный закрывающий backtick (PowerShell-эскейп backtick в double-quoted Replace — та же ловушка, что и `$eval`, набл. 13); (2) `onFile` логирует ошибку декода в консоль (как `runPipeline`), а QA-шаг 16 белелистит ожидаемое «Не удалось прочитать изображение» из шага 12. Minor 3 (автотест catch-пути `runPipeline`) отложен — для app.ts нет DOM-харнесса, отдельное решение. Гейты + QA 16/16 перепроверены после фиксов.
 ### Current state
 
 - Фаза 0 (инициализация) завершена: `pnpm install` ок, `pnpm test`/`typecheck`/`lint`/`build` — зелёные (перепроверено при восстановлении сессии через `pnpm.cmd`).
