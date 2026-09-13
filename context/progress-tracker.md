@@ -6,9 +6,9 @@ Update this file after every completed feature. Any agent reading this should im
 
 ## Current Status
 
-**Phase:** Phase 3 — OCR + Graph **завершена** (04 ✅, 05 ✅)
-**Last completed:** 05 Graph assembly — `src/pipeline/graph.ts` (2026-09-13; `buildGraph(segments, labels): GraphResult` — кандидаты = концы отрезков ∪ пересечения в допуске `ON_SEGMENT_TOLERANCE`=2 px; жадная кластеризация по `VERTEX_MERGE_RADIUS`=5 px, центроид; привязка меток ≤ `LABEL_RADIUS`=40 px, дубликаты букв — min-дистанция; `unboundLabels` — софт-ноты для UI; 16 тестов + 3 интеграции с `verify`, гейты зелёные; утверждённая интерпретация: концы отрезков тоже вершины — иначе parallel/equal-segments не привязывают A/B/C/D)
-**Next / open point:** Phase 4 — 06 verify.ts + result UI (проводка реального пайплайна lines→dedup→ocr→graph→verify в UI + acceptance-тесты ТЗ §5)
+**Phase:** Phase 4 — Verification Engine **завершена** (06 ✅)
+**Last completed:** 06 verify.ts + result UI — проводка реального пайплайна в UI (2026-09-13; `src/pipeline/run.ts` `analyzeDrawing` (DI для OCR/CV, пустая детекция → мягкая ошибка); `src/ui/image-input.ts` File→RawImage; canvas contain-fit + оверлей сегментов/вершин/меток; verdict-card софт-ноты; «Проверить» = полный пайплайн, правило/ε — только verify() на сохранённом графе. Сопутствующие правки: `OCR_PSM` 11→6 (psm11 теряет одиночные метки у линий), `opencv-interop.ts` (UMD-обёртка ломала promise-разрешение). 67/67 юнит-тестов, live QA 12/12, гейты зелёные)
+**Next / open point:** Phase 5 — 07 Performance & polish (бюджет ≤ 3 s на CPU, downscale, error/empty states, a11y, README)
 
 ## Progress
 
@@ -32,7 +32,7 @@ Update this file after every completed feature. Any agent reading this should im
 
 ### Phase 4 — Verification Engine
 
-- [ ] 06 verify.ts + result UI (acceptance tests ТЗ §5)
+- [x] 06 verify.ts + result UI (acceptance tests ТЗ §5) (`src/pipeline/run.ts`: `analyzeDrawing` — композиция стадий, DI для OCR/CV, пустая детекция → мягкая ошибка «отрезков не найдено»; acceptance ТЗ §5 — DI + e2e WASM (vitest) + live QA 12/12; `src/ui/image-input.ts` File→RawImage; canvas contain-fit + `CanvasOverlay` (сегменты/вершины/метки); verdict-card софт-ноты + плейсхолдер; «Проверить» = полный пайплайн, правило/ε после анализа — только verify() на сохранённом графе. Сопутствующие правки: `OCR_PSM` 11→6, `opencv-interop.ts` — UMD-обёртка opencv-js ломала promise-разрешение)
 
 ### Phase 5 — Hardening
 

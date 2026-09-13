@@ -107,6 +107,66 @@
 
 **Principle:** Trust the pinned dependency's source over derived documentation; a spike is cheaper than a plan built on a wrong interface.
 
+### Observation 8: UMD-dep default that is a Promise breaks `__toESM` interop in browser builds
+
+**Status:** OPEN
+**Date:** 2026-09-13
+**Session context:** Feature 06 pipeline wiring (GeoCheck AI); first browser execution of the dynamic `import('@techstark/opencv-js')` (Vitest had it inlined via `test.server.deps.inline`, so the bug only surfaced in the production bundle).
+**Skill:** library-docs / systematic-debugging
+**Type:** open-source
+**Phase/Area:** bundler interop / CJS deps whose default export is a Promise
+
+**Issue:** `@techstark/opencv-js` (UMD/CJS) sets `module.exports` to a Promise in browsers. Rolldown/Vite's `__toESM` wrapper builds the namespace via `Object.create(getPrototypeOf(default))` — i.e. `Promise.prototype` — so the namespace looks like a thenable. When that wrapper flows through a promise chain (vite:preload's `.then`), the engine invokes `Promise.prototype.then` on it and throws `TypeError: Method Promise.prototype.then called on incompatible receiver #<Promise>`. Awaiting the wrapper directly works, which makes the bug look like it is NOT the wrapper — cost several debug iterations.
+
+**Suggested improvement:** In `library-docs` (opencv-js/tesseract notes) and `systematic-debugging`: for UMD/CJS deps whose default export is a Promise, unwrap the interop at module level (a local wrapper module that reads `.default` layers without letting the wrapper pass through promise resolution); `instanceof Promise` cannot distinguish wrapper from real promise.
+
+**Principle:** Interop wrappers can create thenable-shaped objects; never let a bundler interop namespace flow through promise resolution — unwrap eagerly, at module scope.
+
+### Observation 9: tesseract.js PSM 11 drops isolated labels; PSM 6 reads them
+
+**Status:** OPEN
+**Date:** 2026-09-13
+**Session context:** Feature 06 acceptance fixtures (GeoCheck AI); OCR on synthetic drawings with scattered single letters.
+**Skill:** library-docs
+**Type:** open-source
+**Phase/Area:** tesseract.js page segmentation
+
+**Issue:** `tessedit_pageseg_mode 11` (sparse) silently returns empty text/blocks for isolated single letters adjacent to drawn segments, while `6` (uniform block) recognizes them. The failure is layout-analysis-dependent (position- and context-dependent: a letter read in isolation fails in the full drawing), so it looks like nondeterminism.
+
+**Suggested improvement:** In `library-docs` tesseract notes: for sparse label extraction, prefer PSM 6 over 11; validate PSM choice against the real layout before freezing the constant. `blocks: true` output must be requested explicitly (already noted) and PSM must be re-validated when the letter/line geometry changes.
+
+**Principle:** Page-segmentation modes are not interchangeable for sparse glyph recognition; test the mode against the actual visual layout, not the docs description.
+
+### Observation 10: black drawing lines corrupt OCR of nearby labels — gray lines do not
+
+**Status:** OPEN
+**Date:** 2026-09-13
+**Session context:** Feature 06 live-QA fixture design (GeoCheck AI); letters placed within ~40 px of drawing segments (LABEL_RADIUS constraint).
+**Skill:** library-docs / test-driven-development
+**Type:** open-source
+**Phase/Area:** CV+OCR fixture design
+
+**Issue:** With black segments, tesseract misreads or drops labels near them (segmentation merges glyph with line: `A`→`T`, missing blocks) regardless of clearance that satisfied the CV side. Drawing the segments in light gray (`#b0b0b0`) made OCR read all labels: Otsu binarization drops the gray lines from OCR's view, while OpenCV Canny still detects them (gradient ≈ 79 > CANNY_LOW 50). Additionally, synthetic letters with strokes ≥ MIN_SEGMENT_LENGTH create graph vertices that out-compete the true corner for label binding — fixture letters must have strokes < 30 px (small real font) so labels bind to line endpoints.
+
+**Suggested improvement:** In CV+OCR test fixtures: render lines in light gray and labels in black, sized so letter strokes stay below the segment-length threshold; document the "labels darker than lines" rule as an OCR-friendly drawing guideline.
+
+**Principle:** In combined CV+OCR pipelines, the fixture (and the product guidance) must satisfy BOTH stages' preprocessing assumptions — binarization thresholds decide what OCR sees, not what is drawn.
+
+### Observation 11: `cmd /c "pnpm build >NUL 2>&1 && echo OK"` reports false PASS
+
+**Status:** OPEN
+**Date:** 2026-09-13
+**Session context:** Feature 06 gates (GeoCheck AI); a failing `pnpm build` (tsc error) still printed the success marker.
+**Skill:** verification-before-completion
+**Type:** open-source
+**Phase/Area:** Windows gate runs / exit codes
+
+**Issue:** Redirecting pnpm.cmd output with `>NUL 2>&1` inside `cmd /c` made `&&` see a zero exit code even when `tsc --noEmit` failed (the earlier `cmd /c` stderr exit-code false-negative, observation 2, in a different disguise). A stale `dist/` was then served to the browser, costing several confusing debug rounds.
+
+**Suggested improvement:** In `verification-before-completion`, extend the Windows guidance: never silence gate output with `>NUL` when the exit code is the signal — run the gate visibly or check `$LASTEXITCODE`/`%ERRORLEVEL%` explicitly right after the call.
+
+**Principle:** A gate's pass/fail signal must be captured at its source; redirecting output through pnpm.cmd shells can decouple the printed marker from the real result.
+
 ## Archive
 
 See `archive/` for closed observations (moved here during weekly reviews).

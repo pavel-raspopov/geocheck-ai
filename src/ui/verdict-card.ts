@@ -24,8 +24,12 @@ export function createVerdictCard(): HTMLElement {
   return card;
 }
 
-/** Обновление карточки вердикта (скринридер: aria-live). */
-export function updateVerdictCard(card: HTMLElement, verdict: VerifyResult): void {
+/** Обновление карточки вердикта (скринридер: aria-live); notes — софт-ноты. */
+export function updateVerdictCard(
+  card: HTMLElement,
+  verdict: VerifyResult,
+  notes: readonly string[] = [],
+): void {
   const region = card.querySelector('#verdict-region');
   if (!region) {
     return;
@@ -33,7 +37,28 @@ export function updateVerdictCard(card: HTMLElement, verdict: VerifyResult): voi
   const badge = createVerdictBadge(verdict.status);
   const message = paragraph('verdict-message', verdict.message);
   const meta = paragraph('verdict-meta', `ε = ${formatEpsilon(verdict.epsilon)}`);
-  region.replaceChildren(badge, message, meta);
+  const children: HTMLElement[] = [badge, message, meta];
+  if (notes.length > 0) {
+    const wrap = document.createElement('div');
+    wrap.className = 'verdict-notes';
+    for (const note of notes) {
+      const el = document.createElement('p');
+      el.className = 'verdict-note';
+      el.textContent = note;
+      wrap.append(el);
+    }
+    children.push(wrap);
+  }
+  region.replaceChildren(...children);
+}
+
+/** Плейсхолдер между запусками (например, после загрузки нового файла). */
+export function setVerdictPlaceholder(card: HTMLElement, text: string): void {
+  const region = card.querySelector('#verdict-region');
+  if (!region) {
+    return;
+  }
+  region.replaceChildren(paragraph('verdict-empty', text));
 }
 
 function paragraph(className: string, text: string): HTMLParagraphElement {

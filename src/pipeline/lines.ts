@@ -30,8 +30,8 @@ let cvPromise: Promise<CV> | null = null;
 
 function loadCv(): Promise<CV> {
   cvPromise ??= (async () => {
-    // UMD-сборка (CJS): default-экспорт interop'а — сам объект cv (README-паттерн).
-    const mod = (await import('@techstark/opencv-js')) as unknown as {
+    // Интероп-адаптер (см. opencv-interop.ts): default — обещание cv либо сам cv.
+    const mod = (await import('./opencv-interop')) as unknown as {
       default: Promise<CvLike> | CvLike;
     };
     const cv = mod.default instanceof Promise ? await mod.default : mod.default;

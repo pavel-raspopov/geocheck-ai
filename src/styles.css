@@ -255,6 +255,22 @@ a {
 }
 
 .verdict-region {
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .verdict-notes {
+    margin-top: 8px;
+    display: grid;
+    gap: 4px;
+  }
+
+  .verdict-note {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-ink-3);
+  }
   margin-top: 8px;
   min-height: 96px;
   display: flex;

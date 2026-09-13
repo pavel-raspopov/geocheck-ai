@@ -1,18 +1,22 @@
 import type { Rule, VerifyResult } from '../pipeline/types';
 import { verify } from '../pipeline/verify';
+import { analyzeDrawing, type PipelineResult } from '../pipeline/run';
 import { DEMO_DRAWINGS } from '../mock/demo-drawings';
-import { createCanvasCard, renderCanvas } from './canvas-view';
+import { createCanvasCard, renderCanvas, type CanvasOverlay } from './canvas-view';
 import { createEpsilonSlider } from './epsilon-slider';
+import { fileToRawImage } from './image-input';
 import { createRuleSelect } from './rule-select';
 import { createUploadZone } from './upload-zone';
-import { createVerdictCard, updateVerdictCard } from './verdict-card';
+import { createVerdictCard, setVerdictPlaceholder, updateVerdictCard } from './verdict-card';
 import type { AppState } from './types';
 import { createInitialState } from './types';
 
 /**
- * Сборка одноэкранного SPA (Фаза 1, mock): DOM строится один раз, динамика
- * обновляется по состоянию. Вердикт считается движком verify() на демо-графе,
- * поэтому переключение правила и ползунок ε реально меняют Success↔Fail.
+ * Сборка одноэкранного SPA (Фаза 4): DOM строится один раз, динамика обновляется
+ * по состоянию. Без загруженного изображения — демо-режим (мгновенный verify()
+ * на графе демо-сцены); с изображением полный пайплайн запускает кнопка
+ * «Проверить», а смена правила/ε пересчитывает только verify() на сохранённом
+ * графе (OCR/OpenCV заново не запускаются).
  */
 export function createApp(root: HTMLElement): void {
   const state: AppState = createInitialState();
@@ -41,7 +45,9 @@ export function createApp(root: HTMLElement): void {
   verifyButton.type = 'button';
   verifyButton.className = 'btn-primary';
   verifyButton.textContent = 'Проверить';
-  verifyButton.addEventListener('click', run);
+  verifyButton.addEventListener('click', () => {
+    void runPipeline();
+  });
 
   const controls = document.createElement('section');
   controls.className = 'card controls-card';
@@ -52,7 +58,7 @@ export function createApp(root: HTMLElement): void {
 
   root.append(topbar, canvasCard, controls, verdictCard);
   refreshCanvas();
-  run();
+  runDemo();
 
   function createScenarioSelect(): HTMLElement {
     const label = document.createElement('label');
@@ -83,18 +89,92 @@ export function createApp(root: HTMLElement): void {
   function update(patch: Partial<AppState>): void {
     Object.assign(state, patch);
     refreshCanvas();
-    run();
+    refreshVerdict();
   }
 
   function refreshCanvas(): void {
-    renderCanvas(canvas, state.demo, state.imageUrl);
+    renderCanvas(canvas, state.demo, state.imageUrl, overlay());
   }
 
-  /** Запуск «пайплайна» (Фаза 1: демо-граф + настоящий verify()). */
-  function run(): void {
-    const verdict = verify({ graph: state.demo.graph, rule: state.rule, epsilon: state.epsilon });
+  function overlay(): CanvasOverlay | null {
+    if (!state.analysis) {
+      return null;
+    }
+    return {
+      segments: state.analysis.segments,
+      vertices: state.analysis.vertices,
+      labels: state.analysis.labels,
+    };
+  }
+
+  /** Демо-режим: мгновенный verify() на графе демо-сцены (без CV/OCR). */
+  function runDemo(): void {
+    applyVerdict(verify({ graph: state.demo.graph, rule: state.rule, epsilon: state.epsilon }), []);
+  }
+
+  /** Пересчёт вердикта: полный анализ не повторяем — граф уже построен. */
+  function refreshVerdict(): void {
+    if (state.analysis) {
+      const verdict = verify({
+        graph: state.analysis.graph,
+        rule: state.rule,
+        epsilon: state.epsilon,
+      });
+      applyVerdict(verdict, softNotes(state.analysis.unboundLabels));
+    } else if (!state.imageUrl) {
+      runDemo();
+    }
+    // imageUrl && !analysis → ждём «Проверить»; карточку не трогаем.
+  }
+
+  /** Полный анализ загруженного изображения (кнопка «Проверить»). */
+  async function runPipeline(): Promise<void> {
+    if (!state.imageUrl) {
+      runDemo();
+      return;
+    }
+    if (!state.file || state.analyzing) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const raw = await fileToRawImage(state.file);
+      const analysis: PipelineResult = await analyzeDrawing(raw, state.rule, state.epsilon);
+      state.analysis = analysis;
+      refreshCanvas();
+      applyVerdict(analysis.verdict, softNotes(analysis.unboundLabels));
+    } catch (error) {
+      console.error(
+        'Не удалось обработать изображение:',
+        error instanceof Error ? error.stack : error,
+      );
+      applyVerdict(
+        {
+          status: 'Error',
+          message: '[Status: Error] Не удалось обработать изображение',
+          epsilon: state.epsilon,
+        },
+        [],
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function setBusy(busy: boolean): void {
+    state.analyzing = busy;
+    verifyButton.disabled = busy;
+    verifyButton.textContent = busy ? 'Анализ…' : 'Проверить';
+  }
+
+  /** Софт-ноты: метки, не привязанные к вершинам (ТЗ §2.5 «иначе drop»). */
+  function softNotes(unbound: readonly { char: string }[]): string[] {
+    return unbound.map((label) => `Метка ${label.char} не привязана к вершине чертежа`);
+  }
+
+  function applyVerdict(verdict: VerifyResult, notes: readonly string[]): void {
     state.lastVerdict = verdict;
-    updateVerdictCard(verdictCard, verdict);
+    updateVerdictCard(verdictCard, verdict, notes);
     updateStatusDot(verdict.status);
   }
 
@@ -115,6 +195,8 @@ export function createApp(root: HTMLElement): void {
     if (state.imageUrl) {
       URL.revokeObjectURL(state.imageUrl);
     }
-    update({ imageUrl: URL.createObjectURL(file) });
+    state.analysis = null;
+    update({ file, imageUrl: URL.createObjectURL(file) });
+    setVerdictPlaceholder(verdictCard, 'Изображение загружено. Нажмите «Проверить» для анализа.');
   }
 }

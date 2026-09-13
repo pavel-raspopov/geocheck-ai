@@ -1,6 +1,41 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-13 (Session 5)
+Last updated: 2026-09-13 (Session 6)
+
+## Session 6 — Phase 4: 06 verify.ts + result UI (pipeline wiring)
+
+### What was built
+
+- **Фича 06 «Проводка пайплайна + result UI» реализована.** План: `docs/superpowers/plans/2026-09-13-pipeline-wiring.md`.
+- **`src/pipeline/run.ts`** (+ spec, 10 тестов): `analyzeDrawing(image, rule, ε, deps?)` — композиция lines→dedup→ocr→graph→verify, возврат `PipelineResult { segments, labels, vertices, graph, unboundLabels, verdict }`; пустая детекция → мягкая ошибка `[Status: Error] На чертеже не найдено отрезков`; OCR/CV инъекция через `PipelineDeps`. Acceptance ТЗ §5: DI-тесты (84.12° → точный Fail-текст; M на AB через тик → Success; M за B через тик → Fail; метка далеко → `[Status: Error] Точка M не найдена на чертеже`) + e2e WASM (vitest: сегменты с растра линий + метки с растра букв → граф → софт-ошибка ТЗ).
+- **UI:** `src/ui/image-input.ts` (`fileToRawImage`); `canvas-view.ts` — contain-fit изображения + `CanvasOverlay` (сегменты/вершины/метки через общий `drawOverlay`); `verdict-card.ts` — софт-ноты `updateVerdictCard(card, verdict, notes?)` + `setVerdictPlaceholder`; `app.ts` — «Проверить» запускает полный пайплайн (busy-состояние кнопки), смена правила/ε после анализа пересчитывает только `verify()` на сохранённом графе (OCR/CV не перезапускаются), без изображения — демо-режим.
+- **Сопутствующие правки:** `OCR_PSM` 11→6; `src/pipeline/opencv-interop.ts`; QA-харнесс шаги 9–11.
+
+### Decisions made
+
+- **`OCR_PSM` 11→6**: psm 11 «sparse» молча теряет одиночные метки рядом с линиями (зависит от layout-анализа); psm 6 «однородный блок» читает их. Зафиксировано в `constants.ts` + `architecture.md`.
+- **Интероп opencv-js**: UMD default — Promise; обёртка `__toESM` наследует `Promise.prototype` и выглядит thenable → ломает promise-разрешение в браузерном бандле (`TypeError … incompatible receiver`). Решение: `src/pipeline/opencv-interop.ts` разворачивает обёртки на уровне модуля (не через await-цепочки).
+- **Продуктовая подсказка на будущее (Фаза 5):** OCR-дружелюбные чертежи — метки темнее линий; светло-серые линии (`#b0b0b0`) Otsu отбрасывает из OCR-вью, а Canny их детектирует (градиент ≈ 79 > CANNY_LOW).
+- **UI-правило производительности:** полный пайплайн — только по кнопке «Проверить»; правило/ε — мгновенный verify() на сохранённом графе.
+
+### Problems solved
+
+- OCR на синтетических глифах — долгая отладка: блок-глифы A/B LSTM читает ненадёжно (A→E, B→L); чёрные линии портят распознавание соседних букв (A→T, пропуски); глифы со штрихами ≥ 30 px создают competing-вершины (метка цепляется за свой глиф). Рабочая схема QA-фикстуры: серые линии + чёрные Arial 32px (штрихи < 30 px), центры глифов в 28 px от вершин.
+- Типовая ловушка Vitest-интеропа проявилась и в браузерном бандле (набл. 8); pnpm build с `>NUL` давал ложный PASS при упавшем tsc (набл. 11).
+- Удалены временные отладочные артефакты (debug-pipeline.mjs, qa-bmp.spec, ocr-probe, qa-fixtures, логи/BMP).
+
+### Current state
+
+- **Фаза 4 завершена (06 ✅):** 67/67 юнит-тестов, `typecheck`/`lint`/`format`/`build` зелёные, **live QA 12/12** (`pnpm qa`, headless Chrome): демо-режим (7 проверок) + реальный пайплайн ∠ABC=90° → Success + мгновенный пересчёт правила без OCR (soft-error «Точка D не найдена») + пустой чертёж → «не найдено отрезков» + чистая консоль.
+- Пайплайн полностью подключён к UI: оверлей отрезков/вершин/меток, софт-ноты, busy-состояние.
+
+### Next session starts with
+
+- **Фаза 5 — 07 Performance & polish:** бюджет ≤ 3 s на CPU (замер, downscale-стратегия при больших изображениях), error/empty states, a11y-проход, README, финальный коммит. Сначала `/writing-plans`. Учесть: интероп-адаптер opencv и PSM 6 уже в коде; график OCR-дружелюбных чертежей (набл. 10) можно вынести в README-подсказку для пользователя.
+
+### Open questions
+
+- Нет открытых. (PSM-вопрос из ТЗ-этапа 04 закрыт выбором 6.)
 
 ## Session 5 — Phase 3: 05 Graph assembly
 

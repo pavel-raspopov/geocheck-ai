@@ -43,8 +43,10 @@ export const OCR_CHAR_WHITELIST = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 /** Минимальная уверенность распознавания символа, %. */
 export const OCR_MIN_CONFIDENCE = 60;
 
-/** Page segmentation mode 11 = «sparse text» для разбросанных меток вершин. */
-export const OCR_PSM = '11';
+/** Page segmentation mode 6 = «однородный блок текста» (внутренний параметр;
+ * psm 11 «sparse» теряет одиночные метки рядом с линиями — проверено на
+ * синтетических чертежах Фазы 4; psm 6 читает все метки). */
+export const OCR_PSM = '6';
 
 /** DPI-подсказка, чтобы tesseract не отклонял изображение как слишком мелкое. */
 export const OCR_USER_DPI = '96';

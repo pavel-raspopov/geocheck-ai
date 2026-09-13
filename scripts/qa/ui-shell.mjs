@@ -182,7 +182,94 @@ try {
     uploadError?.toString().includes('не является изображением') ?? false,
   );
 
-  // 9. Консоль: ожидаемый шум — 404 favicon (см. шапку файла).
+  // 9. Реальный пайплайн: рисуем чертёж в браузере. Линии светло-серые —
+  // Otsu-бинаризация OCR отбрасывает их (Canny градиент ≈ 79 > CANNY_LOW,
+  // сегменты детектируются), метки — чёрные Arial 32px: штрихи короче
+  // MIN_SEGMENT_LENGTH не создают competing-вершин, центры глифов в 28 px
+  // от вершин ≤ LABEL_RADIUS 40.
+  const drawingPng = await page.evaluate(async () => {
+    const c = document.createElement('canvas');
+    c.width = 640;
+    c.height = 300;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 640, 300);
+    ctx.strokeStyle = '#b0b0b0';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    const seg = (x1, y1, x2, y2) => {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    };
+    seg(200, 60, 520, 60);
+    seg(520, 60, 520, 220);
+    ctx.fillStyle = '#000000';
+    ctx.font = '700 32px Arial';
+    ctx.fillText('A', 161, 71);
+    ctx.fillText('B', 537, 71);
+    ctx.fillText('C', 537, 231);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.evaluate((bytes) => {
+    const file = new File([new Uint8Array(bytes)], 'drawing.png', { type: 'image/png' });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document
+      .querySelector('.upload-zone')
+      .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+  }, drawingPng);
+  await page.click('.btn-primary');
+  await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Верно', {
+    timeout: 120000,
+  });
+  const realMsg = await page.$eval('.verdict-message', (el) => el.textContent);
+  check('реальный пайплайн: ∠ABC = 90° → Success', realMsg.includes('Верно: угол ABC'));
+
+  // 10. Смена правила после анализа — мгновенный verify() на сохранённом графе
+  // (без повторного OCR): parallel требует точку D → контрактная мягкая ошибка.
+  await page.select('#rule-select', 'parallel');
+  await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Ошибка', {
+    timeout: 5000,
+  });
+  const parMsg = await page.$eval('.verdict-message', (el) => el.textContent);
+  check(
+    'после анализа: parallel → мягкая ошибка «Точка D не найдена» без повторного OCR',
+    parMsg.includes('Точка D не найдена'),
+  );
+
+  // 11. Unhappy path: пустой чертёж → мягкая ошибка «не найдено отрезков».
+  const blankPng = await page.evaluate(async () => {
+    const c = document.createElement('canvas');
+    c.width = 200;
+    c.height = 200;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 200, 200);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.evaluate((bytes) => {
+    const file = new File([new Uint8Array(bytes)], 'blank.png', { type: 'image/png' });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document
+      .querySelector('.upload-zone')
+      .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+  }, blankPng);
+  await page.click('.btn-primary');
+  const blankMsg = await page.waitForFunction(
+    () => document.querySelector('.verdict-message')?.textContent ?? null,
+    { timeout: 120000 },
+  );
+  check(
+    'пустой чертёж: мягкая ошибка «на чертеже не найдено отрезков»',
+    blankMsg?.toString().includes('не найдено отрезков') ?? false,
+  );
+
+  // 12. Консоль: ожидаемый шум — 404 favicon (см. шапку файла).
   const realErrors = consoleNoise.filter(
     (e) => !(e.url.includes('favicon') && e.text.includes('404')),
   );

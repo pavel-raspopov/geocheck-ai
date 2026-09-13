@@ -50,10 +50,11 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 ## Phase 4 — Verification Engine
 
-### 06 verify.ts + result UI
+### 06 verify.ts + result UI ✅
 
 **Logic:** 4 rules with ε (verify.ts already scaffolded in Phase 0); soft errors; exact ТЗ messages; acceptance tests (ТЗ §5): right triangle → `Success`; 84.12° at ε=3 → `Fail` with exact text; M beyond B → `Fail`.
 **UI:** wire the real pipeline to the verdict card; overlay recognized lines/labels/vertices on the canvas.
+**Done 2026-09-13** (`src/pipeline/run.ts`: `analyzeDrawing` — композиция стадий, DI для OCR/CV, пустая детекция → мягкая ошибка; `src/ui/image-input.ts` File→RawImage; canvas contain-fit + `CanvasOverlay`; verdict-card софт-ноты; проводка в app.ts — «Проверить» запускает полный пайплайн, смена правила/ε пересчитывает только verify() на сохранённом графе. acceptance ТЗ §5 — DI-тесты + e2e WASM (vitest) + live QA 12/12 (`pnpm qa`). Сопутствующие правки: `OCR_PSM` 11→6 (psm11 теряет одиночные метки у линий), `opencv-interop.ts` — разворачивание UMD-обёртки (TypeError incompatible receiver).
 
 ---
 
@@ -73,5 +74,5 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 03 Deduplication
 - [x] 04 OCR (Tesseract.js) (Done 2026-09-13)
 - [x] 05 Graph assembly (Done 2026-09-13)
-- [ ] 06 verify.ts + result UI
+- [x] 06 verify.ts + result UI (Done 2026-09-13)
 - [ ] 07 Performance & polish
