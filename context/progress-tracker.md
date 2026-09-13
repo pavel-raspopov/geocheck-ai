@@ -6,9 +6,9 @@ Update this file after every completed feature. Any agent reading this should im
 
 ## Current Status
 
-**Phase:** Phase 2 — CV Pipeline **в работе** (02 ✅, 03 — следующая)
-**Last completed:** 02 Line detection (OpenCV.js) — `src/pipeline/lines.ts` (2026-09-12; grayscale → Canny → HoughLinesP; 22/22 юнит-тестов, гейты зелёные)
-**Next / open point:** Phase 2 — 03 Deduplication
+**Phase:** Phase 2 — CV Pipeline **в работе** (02 ✅, 03 ✅, 04 — следующая)
+**Last completed:** 03 Deduplication — `src/pipeline/dedup.ts` (2026-09-13; кластеризация Δугла ≤ 5° И расстояние ≤ 7 px (мин. расстояние отрезок↔отрезок), транзитивный union-find, слияние по двум дальним концам; 32/32 юнит-тестов, гейты зелёные)
+**Next / open point:** Phase 3 — 04 OCR (Tesseract.js)
 
 ## Progress
 
@@ -23,7 +23,7 @@ Update this file after every completed feature. Any agent reading this should im
 ### Phase 2 — CV Pipeline
 
 - [x] 02 Line detection (OpenCV.js) (`src/pipeline/lines.ts`: grayscale → Canny → HoughLinesP → фильтр ≥ 30 px; 6 новых тестов на синтетике; Vitest: `test.server.deps.inline` + `deps.interopDefault: false`)
-- [ ] 03 Deduplication
+- [x] 03 Deduplication (`src/pipeline/dedup.ts`: Δугла ≤ 5° И расстояние ≤ 7 px — мин. расстояние отрезок↔отрезок; транзитивный union-find; слияние по двум дальним концам; 10 тестов на чистом TS, детерминированные)
 
 ### Phase 3 — OCR + Graph
 

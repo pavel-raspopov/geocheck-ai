@@ -1,6 +1,40 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-12 (Session 2)
+Last updated: 2026-09-13 (Session 3)
+
+## Session 3 — Phase 2: 03 Deduplication
+
+### What was built
+
+- **Фича 03 «Deduplication» реализована по TDD.** План: `docs/superpowers/plans/2026-09-13-deduplication.md`.
+- **`src/pipeline/dedup.ts`** (+ spec, 10 тестов, red→green): `deduplicateSegments(): LineSegment[]` — чистая sync-функция (без OpenCV/DOM). Внутри: углы без направления ([0°, 180°), diff = min(|a−b|, 180−|a−b|)), метрика близости — минимум из 4 расстояний конец→отрезок, транзитивная кластеризация (union-find), слияние кластера по двум дальним концам, направление результата нормализовано (левее-выше первым), вывод — длина ↓ (конвенция lines.ts), ids `seg-N`.
+
+### Decisions made
+
+- **«Евклидово расстояние ≤ 7 px» между отрезками = минимальное расстояние отрезок↔отрезок** (4 пары конец→отрезок; 0 при наложении). Коллинеарные фрагменты с зазором > 7 px НЕ сливаются (чтение ТЗ «расстояние между ними»); Hough-дубли (±2–3 px) и налегающие фрагменты сливаются. Зафиксировано в `context/architecture.md`.
+- Кластеризация транзитивна: A~B, B~C ⇒ один кластер даже при A!~C (union-find, детерминирован порядком входа).
+- Пороги только из `constants.ts` (`CLUSTER_ANGLE_DEG=5`, `CLUSTER_DISTANCE=7`) — в тестах не литералы.
+
+### Problems solved
+
+- Конструкция угловых тестов: наклон θ задаётся `dy = dx·tan(θ)`, а не `2·tan(θ)` — иначе фактический угол ≈ 0.14° и тест «не сливаются» падал.
+- `noUncheckedIndexedAccess` в спеках: `result[0]` требует `!` (`merged`/`prev`/`curr`).
+- PowerShell: `cmd /c` требует цитировать весь аргумент (`cmd /c "pnpm.cmd test && echo PASS"`), иначе `&&` парсится самим PowerShell (дополнение к observation #2 в task-observer).
+- Prettier: новые файлы прогонять через `--write` до `format:check`.
+
+### Current state
+
+- **Фаза 2 (02, 03) завершена:** 32/32 юнит-тестов, `typecheck`, `lint` 0/0, `format:check`, `build` — зелёные. Стадии не подключены к UI (подключение — Фаза 4/06), dedup в `dist/` tree-shaken.
+- Обновлены: `context/progress-tracker.md`, `context/build-plan.md`, `context/architecture.md` (стадия 2 — метрика и транзитивность).
+
+### Next session starts with
+
+- **Фаза 3 — 04 OCR:** `src/pipeline/ocr.ts` (Tesseract.js, одиночные латинские A–Z uppercase + центры). Сначала решить открытый вопрос: локальный бандл `tessdata` vs CDN; перед стартом читать `context/library-docs.md`.
+- Входной случай для 05 (graph): дедуплицированные отрезки из `deduplicateSegments`.
+
+### Open questions
+
+- Tesseract.js: локальный бандл `tessdata` vs CDN — решить на фазе 04 (OCR).
 
 ## Session 2 — Phase 2: 02 Line detection (OpenCV.js)
 

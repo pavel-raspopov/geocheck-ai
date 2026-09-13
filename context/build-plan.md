@@ -30,9 +30,9 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 **Logic:** `lines.ts` — load image (data URL / ImageData), grayscale, `HoughLinesP`; filter segments < 30 px; return `LineSegment[]`. Tests with small synthetic drawings. **Done 2026-09-12** (grayscale → Canny → HoughLinesP; Vitest требует `test.server.deps.inline` + `test.deps.interopDefault: false`).
 
-### 03 Deduplication
+### 03 Deduplication ✅
 
-**Logic:** `dedup.ts` — cluster segments (angle diff ≤ 5° AND euclidean distance ≤ 7 px), merge each cluster into one segment spanning its two farthest endpoints. Deterministic unit tests.
+**Logic:** `dedup.ts` — cluster segments (angle diff ≤ 5° AND euclidean distance ≤ 7 px), merge each cluster into one segment spanning its two farthest endpoints. Deterministic unit tests. **Done 2026-09-13** (`deduplicateSegments`: чистая sync-функция; «расстояние» = мин. расстояние отрезок↔отрезок (4 пары конец→отрезок), углы без направления [0°, 180°), транзитивный union-find, вывод — длина ↓, ids `seg-N`).
 
 ---
 
@@ -70,7 +70,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 00 Project scaffold + AI harness
 - [x] 01 Upload + rule selection + ε slider
 - [x] 02 Line detection (OpenCV.js)
-- [ ] 03 Deduplication
+- [x] 03 Deduplication
 - [ ] 04 OCR (Tesseract.js)
 - [ ] 05 Graph assembly
 - [ ] 06 verify.ts + result UI
