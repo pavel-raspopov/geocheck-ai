@@ -1,6 +1,40 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-13 (Session 6)
+Last updated: 2026-09-13 (Session 7)
+
+
+## Session 7 — Phase 5: 07 Performance & polish (даунскейл, замер стадий, a11y, README)
+
+### What was built
+
+- **Фаза 5 (07) завершена — все фазы билда закрыты.** План: `docs/superpowers/plans/2026-09-13-performance-polish.md` (написан в прерванной сессии вместе с большей частью кода; эта сессия довела QA, доки и коммит).
+- **`src/pipeline/scale.ts`** (+ spec, 6 тестов): `scaledDimensions` (upscale запрещён, мин. 1 px) + `downscaleRawImage` (nearest-neighbour); `MAX_IMAGE_DIMENSION = 1600` в `constants.ts`.
+- **`run.ts`**: `StageTimings` (detect/recognize/graph/verify/total) в `PipelineResult`; `formatTimings` в `ui/types.ts` (+1 тест) → строка `.verdict-timing mono` в verdict-card.
+- **`image-input.ts`**: `fileToRawImage` → `DecodedImage { raw, previewUrl }` — декод с даунскейлом, превью из того же canvas (оверлей совпадает без пересчёта координат) + `imageSmoothingQuality: 'high'`.
+- **UI/app:** async `onFile` (битое изображение → мягкая ошибка «Не удалось прочитать изображение»), «Проверить» без повторного декода (`state.raw`); canvas-view `role="img"` + aria-label; upload-zone hint «больше 1600 px сжимаются автоматически».
+- **QA `ui-shell.mjs`:** шаги 10–12/15 (даунскейл 2000×1500 → 1600×1200; бюджет ≤ 3 s по строке timings; битое изображение; a11y-инварианты), диагностический try/catch с дампом verdict-card у шага 10. **README**: «Производительность», «OCR-дружелюбные чертежи», структура; build-plan/progress-tracker/ui-registry обновлены.
+
+### Decisions made
+
+- Пороги ТЗ применяются в «пикселях анализа» (после даунскейла); обратное масштабирование не вводим. Превью и анализ — всегда одного размера.
+- `imageSmoothingQuality: 'high'` при даунскейле — точность анализа важнее стоимости декодирования.
+
+### Problems solved
+
+- **Двойной провал QA-шага 10 (даунскейл) — корневая причина найдена диагностическим дампом:** (1) метки в 45–75 px от вершин в масштабе анализа > LABEL_RADIUS 40; (2) главный фактор — глифы 128px (64px после ×0.5): штрихи ≥ 30 px создают competing-вершины, а билинейный даунскейл (smoothing low по умолчанию) размывал «C» — OCR молча терял метку → «Точка C не найдена». Рабочая фикстура: контент = геометрия шага 9 ×1.25 на 2000×1500 (даунскейл ×0.8, глифы 32px в анализе, центры ~28 px) + smoothing high. Правило: фикстуру пайплайна с даунскейлом проектировать в масштабе анализа (штрихи < 30 px И центры ≤ 40 px), не в масштабе холста.
+- PowerShell: `$eval` внутри double-quoted строки интерполируется в пусто при генерации кода через Replace — код-в-строках собирать single-quoted литералами.
+
+### Current state
+
+- 76/76 юнит-тестов, typecheck/lint/format/build зелёные, **live QA 16/16** (`pnpm qa`), консоль чистая. Коммит `feat(polish)` — в этой сессии.
+
+### Next session starts with
+
+- Опционально: финальная заливка на GitHub. Проект функционально завершён.
+
+### Open questions
+
+- Нет.
 
 ## Session 6 — Phase 4: 06 verify.ts + result UI (pipeline wiring)
 

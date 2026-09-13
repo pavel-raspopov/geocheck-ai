@@ -52,6 +52,35 @@ describe('analyzeDrawing (DI, детерминированно)', () => {
     expect(result.verdict.message).toBe('[Status: Error] На чертеже не найдено отрезков');
   });
 
+  it('замеряет длительности стадий (DI)', async () => {
+    const delay = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+    const result = await analyzeDrawing(BLANK, 'perpendicular', 3, {
+      detectSegments: async () => {
+        await delay(5);
+        return IDEAL;
+      },
+      recognizeLabels: async () => {
+        await delay(5);
+        return IDEAL_LABELS;
+      },
+    });
+    expect(result.timings.detect).toBeGreaterThanOrEqual(4);
+    expect(result.timings.recognize).toBeGreaterThanOrEqual(4);
+    expect(result.timings.graph).toBeGreaterThanOrEqual(0);
+    expect(result.timings.verify).toBeGreaterThanOrEqual(0);
+    expect(result.timings.total).toBeGreaterThanOrEqual(
+      result.timings.detect + result.timings.recognize,
+    );
+  });
+
+  it('пустая детекция: timings присутствуют (recognize = 0)', async () => {
+    const result = await analyzeDrawing(BLANK, 'perpendicular', 3, {
+      detectSegments: async () => [],
+    });
+    expect(result.timings.recognize).toBe(0);
+    expect(result.timings.total).toBeGreaterThanOrEqual(result.timings.detect);
+  });
+
   it('метки не распознались → мягкая ошибка ТЗ про точку A', async () => {
     const result = await analyzeDrawing(BLANK, 'perpendicular', 3, stubDeps(IDEAL, []));
     expect(result.verdict.status).toBe('Error');

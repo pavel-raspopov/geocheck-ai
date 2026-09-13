@@ -167,6 +167,36 @@
 
 **Principle:** A gate's pass/fail signal must be captured at its source; redirecting output through pnpm.cmd shells can decouple the printed marker from the real result.
 
+
+### Observation 12: QA fixture for a downscaling pipeline must be designed in analysis space
+
+**Status:** OPEN
+**Date:** 2026-09-13
+**Session context:** Phase 5 downscale QA step (GeoCheck AI); step-10 fixture failed twice with a bare TimeoutError before a verdict-card dump exposed the cause.
+**Skill:** test-driven-development / writing-plans
+**Type:** open-source
+**Phase/Area:** CV+OCR test fixtures under image downscaling
+
+**Issue:** A QA fixture written at canvas scale (3200×2400, 128 px glyphs) silently violated BOTH analysis-space constraints after ×0.5 downscale: label centers landed 45–75 px from vertices (> LABEL_RADIUS 40) and glyph strokes exceeded 30 px, creating competing vertices. Even after fixing distances, the default bilinear drawImage downscale (`imageSmoothingQuality: 'low'`) blurred the «C» glyph so tesseract silently dropped it — the pipeline then returned the ТЗ soft error «Точка C не найдена» and the QA wait timed out with no message.
+
+**Suggested improvement:** In test-fixture guidance: when the pipeline downscales, design the fixture in ANALYSIS pixels (strokes < MIN_SEGMENT_LENGTH AND label centers ≤ binding radius), pick a mild downscale ratio (e.g. ×0.8) so resampling stays crisp, set `imageSmoothingQuality = 'high'` in the decode path, and add a failure diagnostic (dump verdict text + console) to long-timeout waits instead of letting them die as bare TimeoutErrors.
+
+**Principle:** Fixture geometry constraints apply at the scale the algorithm actually sees; a resampling step changes both geometry and pixel fidelity, so the fixture must be validated in the algorithm's input space, not the authoring space.
+
+### Observation 13: double-quoted PowerShell replacement strings swallow `$`-identifiers when generating code
+
+**Status:** OPEN
+**Date:** 2026-09-13
+**Session context:** Editing `scripts/qa/ui-shell.mjs` via PowerShell `.Replace()` in a shell-only session (no file-editor tool); generated `page.$eval(...)` became `page.(...)` and the module failed to parse.
+**Skill:** general tooling (no dedicated skill)
+**Type:** open-source
+**Phase/Area:** shell-based code generation on Windows
+
+**Issue:** In `"...page.$eval('...')..."` PowerShell interpolated `$eval` as an (empty) variable, silently corrupting the generated JavaScript; the error only surfaced on the next node run.
+
+**Suggested improvement:** When generating or patching code through PowerShell strings, use single-quoted literals (or here-strings `@'...'@`) for any payload containing `$`; verify generated snippets with a targeted grep after writing.
+
+**Principle:** String payloads that are themselves code must be built with non-interpolating quoting; every shell-side code transformation needs a post-write syntax check.
 ## Archive
 
 See `archive/` for closed observations (moved here during weekly reviews).

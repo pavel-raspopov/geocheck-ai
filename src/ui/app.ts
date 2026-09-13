@@ -8,6 +8,7 @@ import { fileToRawImage } from './image-input';
 import { createRuleSelect } from './rule-select';
 import { createUploadZone } from './upload-zone';
 import { createVerdictCard, setVerdictPlaceholder, updateVerdictCard } from './verdict-card';
+import { formatTimings } from './types';
 import type { AppState } from './types';
 import { createInitialState } from './types';
 
@@ -120,7 +121,11 @@ export function createApp(root: HTMLElement): void {
         rule: state.rule,
         epsilon: state.epsilon,
       });
-      applyVerdict(verdict, softNotes(state.analysis.unboundLabels));
+      applyVerdict(
+        verdict,
+        softNotes(state.analysis.unboundLabels),
+        formatTimings(state.analysis.timings),
+      );
     } else if (!state.imageUrl) {
       runDemo();
     }
@@ -133,16 +138,19 @@ export function createApp(root: HTMLElement): void {
       runDemo();
       return;
     }
-    if (!state.file || state.analyzing) {
+    if (!state.raw || state.analyzing) {
       return;
     }
     setBusy(true);
     try {
-      const raw = await fileToRawImage(state.file);
-      const analysis: PipelineResult = await analyzeDrawing(raw, state.rule, state.epsilon);
+      const analysis: PipelineResult = await analyzeDrawing(state.raw, state.rule, state.epsilon);
       state.analysis = analysis;
       refreshCanvas();
-      applyVerdict(analysis.verdict, softNotes(analysis.unboundLabels));
+      applyVerdict(
+        analysis.verdict,
+        softNotes(analysis.unboundLabels),
+        formatTimings(analysis.timings),
+      );
     } catch (error) {
       console.error(
         'Не удалось обработать изображение:',
@@ -172,9 +180,9 @@ export function createApp(root: HTMLElement): void {
     return unbound.map((label) => `Метка ${label.char} не привязана к вершине чертежа`);
   }
 
-  function applyVerdict(verdict: VerifyResult, notes: readonly string[]): void {
+  function applyVerdict(verdict: VerifyResult, notes: readonly string[], timing?: string): void {
     state.lastVerdict = verdict;
-    updateVerdictCard(verdictCard, verdict, notes);
+    updateVerdictCard(verdictCard, verdict, notes, timing);
     updateStatusDot(verdict.status);
   }
 
@@ -191,12 +199,22 @@ export function createApp(root: HTMLElement): void {
     update({ epsilon });
   }
 
-  function onFile(file: File): void {
-    if (state.imageUrl) {
-      URL.revokeObjectURL(state.imageUrl);
+  /** Загрузка: декод с даунскейлом сразу (превью и анализ одного размера). */
+  async function onFile(file: File): Promise<void> {
+    const previous = state.imageUrl;
+    setBusy(true);
+    try {
+      const decoded = await fileToRawImage(file);
+      if (previous) {
+        URL.revokeObjectURL(previous);
+      }
+      state.analysis = null;
+      update({ file, imageUrl: decoded.previewUrl, raw: decoded.raw });
+      setVerdictPlaceholder(verdictCard, 'Изображение загружено. Нажмите «Проверить» для анализа.');
+    } catch {
+      setVerdictPlaceholder(verdictCard, '[Status: Error] Не удалось прочитать изображение');
+    } finally {
+      setBusy(false);
     }
-    state.analysis = null;
-    update({ file, imageUrl: URL.createObjectURL(file) });
-    setVerdictPlaceholder(verdictCard, 'Изображение загружено. Нажмите «Проверить» для анализа.');
   }
 }

@@ -70,6 +70,11 @@ export function createCanvasCard(uploadZone: HTMLElement): CanvasCard {
   well.className = 'canvas-checker';
   const canvas = document.createElement('canvas');
   canvas.id = 'drawing-canvas';
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute(
+    'aria-label',
+    'Чертёж: предпросмотр изображения с оверлеем распознанных отрезков, вершин и меток',
+  );
   well.append(canvas);
 
   const note = document.createElement('p');

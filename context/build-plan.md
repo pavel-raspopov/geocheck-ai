@@ -63,6 +63,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 ### 07 Performance & polish
 
 **Logic/UI:** measure and hold ≤ 3 s per image on CPU (downscale strategy); error/empty states; a11y pass; README final; final commit (then optional GitHub upload).
+**Done 2026-09-13** (даунскейл до `MAX_IMAGE_DIMENSION` 1600 + замер стадий `StageTimings` в `run.ts`, строка времени `.verdict-timing` в verdict-card, декод с превью одного размера в `image-input.ts` (`imageSmoothingQuality: high`), битое изображение → мягкая ошибка чтения, a11y: canvas `role="img"` + aria-label, QA 16/16).
 
 ---
 
@@ -75,4 +76,4 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 04 OCR (Tesseract.js) (Done 2026-09-13)
 - [x] 05 Graph assembly (Done 2026-09-13)
 - [x] 06 verify.ts + result UI (Done 2026-09-13)
-- [ ] 07 Performance & polish
+- [x] 07 Performance & polish (Done 2026-09-13)

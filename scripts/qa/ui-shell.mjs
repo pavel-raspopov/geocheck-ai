@@ -221,6 +221,9 @@ try {
       .querySelector('.upload-zone')
       .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
   }, drawingPng);
+  await page.waitForFunction(() =>
+    document.querySelector('.verdict-empty')?.textContent.includes('Изображение загружено'),
+  );
   await page.click('.btn-primary');
   await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Верно', {
     timeout: 120000,
@@ -228,7 +231,88 @@ try {
   const realMsg = await page.$eval('.verdict-message', (el) => el.textContent);
   check('реальный пайплайн: ∠ABC = 90° → Success', realMsg.includes('Верно: угол ABC'));
 
-  // 10. Смена правила после анализа — мгновенный verify() на сохранённом графе
+  // 10. Даунскейл: большой чертёж (2000×1500 → 1600×1200) проходит полный пайплайн.
+  // Контент = геометрия шага 9 ×1.25: после даунскейла ×0.8 анализ-геометрия идентична шагу 9
+  // (глифы 32 px — штрихи < 30 px, не создают competing-вершины; центры в ~27 px ≤ LABEL_RADIUS 40).
+  const bigPng = await page.evaluate(async () => {
+    const c = document.createElement('canvas');
+    c.width = 2000;
+    c.height = 1500;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 2000, 1500);
+    ctx.strokeStyle = '#b0b0b0';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    const seg = (x1, y1, x2, y2) => {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    };
+    seg(250, 75, 650, 75);
+    seg(650, 75, 650, 275);
+    ctx.fillStyle = '#000000';
+    ctx.font = '700 40px Arial';
+    ctx.fillText('A', 201, 89);
+    ctx.fillText('B', 671, 89);
+    ctx.fillText('C', 671, 289);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.evaluate((bytes) => {
+    const file = new File([new Uint8Array(bytes)], 'big.png', { type: 'image/png' });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document
+      .querySelector('.upload-zone')
+      .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+  }, bigPng);
+  await page.waitForFunction(() =>
+    document.querySelector('.verdict-empty')?.textContent.includes('Изображение загружено'),
+  );
+  await page.click('.btn-primary');
+  try {
+    await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Верно', {
+      timeout: 120000,
+    });
+  } catch {
+    const card = await page
+      .$eval('.card:last-of-type', (el) => el.textContent)
+      .catch(() => '(карточки нет)');
+    console.error('ДИАГНОСТИКА шага 10: verdict-card =', card);
+    for (const e of consoleNoise) console.error('ДИАГНОСТИКА console:', e.text, e.url);
+    throw new Error('даунскейл-чертёж не дошёл до Success');
+  }
+  check('даунскейл 2000×1500 → 1600×1200: ∠ABC = 90° → Success', true);
+
+  // 11. Бюджет ≤ 3 s: строка timings в вердикте.
+  const timingText = await page.$eval('.verdict-timing', (el) => el.textContent);
+  const totalSec = Number(timingText.match(/всего ([0-9.]+) с/)?.[1] ?? NaN);
+  check(
+    'бюджет: полный анализ ≤ 3 s (строка timings)',
+    Number.isFinite(totalSec) && totalSec <= 3.0,
+  );
+
+  // 12. Битое изображение → мягкая ошибка чтения (не падение).
+  await page.evaluate(() => {
+    const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 3])], 'broken.png', {
+      type: 'image/png',
+    });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document
+      .querySelector('.upload-zone')
+      .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+  });
+  await page.waitForFunction(() =>
+    document
+      .querySelector('.verdict-empty')
+      ?.textContent.includes('Не удалось прочитать изображение'),
+  );
+  check('битое изображение: мягкая ошибка «Не удалось прочитать изображение»', true);
+
+  // 13. Смена правила после анализа — мгновенный verify() на сохранённом графе
   // (без повторного OCR): parallel требует точку D → контрактная мягкая ошибка.
   await page.select('#rule-select', 'parallel');
   await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Ошибка', {
@@ -240,7 +324,7 @@ try {
     parMsg.includes('Точка D не найдена'),
   );
 
-  // 11. Unhappy path: пустой чертёж → мягкая ошибка «не найдено отрезков».
+  // 14. Unhappy path: пустой чертёж → мягкая ошибка «не найдено отрезков».
   const blankPng = await page.evaluate(async () => {
     const c = document.createElement('canvas');
     c.width = 200;
@@ -259,6 +343,9 @@ try {
       .querySelector('.upload-zone')
       .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
   }, blankPng);
+  await page.waitForFunction(() =>
+    document.querySelector('.verdict-empty')?.textContent.includes('Изображение загружено'),
+  );
   await page.click('.btn-primary');
   const blankMsg = await page.waitForFunction(
     () => document.querySelector('.verdict-message')?.textContent ?? null,
@@ -269,7 +356,25 @@ try {
     blankMsg?.toString().includes('не найдено отрезков') ?? false,
   );
 
-  // 12. Консоль: ожидаемый шум — 404 favicon (см. шапку файла).
+  // 15. A11y-инварианты: доступные имена и клавиатура.
+  const a11y = await page.evaluate(() => {
+    const zone = document.querySelector('.upload-zone');
+    const canvas = document.querySelector('#drawing-canvas');
+    return {
+      zoneRole: zone?.getAttribute('role') === 'button' && zone?.tabIndex === 0,
+      ruleInLabel: document.querySelectorAll('label.field #rule-select').length === 1,
+      epsInLabel: document.querySelectorAll('label.field #eps-range').length === 1,
+      canvasAria:
+        canvas?.getAttribute('role') === 'img' &&
+        (canvas?.getAttribute('aria-label') ?? '').length > 0,
+    };
+  });
+  check(
+    'a11y: upload role=button/tabindex, поля внутри label, canvas role=img + aria-label',
+    a11y.zoneRole && a11y.ruleInLabel && a11y.epsInLabel && a11y.canvasAria,
+  );
+
+  // 16. Консоль: ожидаемый шум — 404 favicon (см. шапку файла).
   const realErrors = consoleNoise.filter(
     (e) => !(e.url.includes('favicon') && e.text.includes('404')),
   );

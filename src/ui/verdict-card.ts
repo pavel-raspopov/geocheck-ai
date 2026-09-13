@@ -24,11 +24,12 @@ export function createVerdictCard(): HTMLElement {
   return card;
 }
 
-/** Обновление карточки вердикта (скринридер: aria-live); notes — софт-ноты. */
+/** Обновление карточки вердикта (скринридер: aria-live); notes — софт-ноты, timing — время анализа. */
 export function updateVerdictCard(
   card: HTMLElement,
   verdict: VerifyResult,
   notes: readonly string[] = [],
+  timing?: string,
 ): void {
   const region = card.querySelector('#verdict-region');
   if (!region) {
@@ -38,6 +39,9 @@ export function updateVerdictCard(
   const message = paragraph('verdict-message', verdict.message);
   const meta = paragraph('verdict-meta', `ε = ${formatEpsilon(verdict.epsilon)}`);
   const children: HTMLElement[] = [badge, message, meta];
+  if (timing) {
+    children.push(paragraph('verdict-timing mono', timing));
+  }
   if (notes.length > 0) {
     const wrap = document.createElement('div');
     wrap.className = 'verdict-notes';

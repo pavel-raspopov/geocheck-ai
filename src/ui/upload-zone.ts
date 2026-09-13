@@ -27,7 +27,7 @@ export function createUploadZone(onFile: (file: File) => void): HTMLElement {
 
   const hint = document.createElement('p');
   hint.className = 'upload-hint';
-  hint.textContent = 'PNG, JPEG, WEBP — в Фазе 1 доступен только предпросмотр изображения';
+  hint.textContent = 'PNG, JPEG, WEBP — изображения больше 1600 px сжимаются автоматически';
 
   const error = document.createElement('p');
   error.className = 'upload-error';
