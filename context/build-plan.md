@@ -73,7 +73,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 ### 08 Rule domain + оффлайн-парсер (`src/pipeline/rules/`)
 
-**Logic:** `parseTask(text)` — чистая функция, TDD: нормализация омоглифов (А→A, В→B, С→C, К→K, М→M, Н→H, Е→E, О→O, Р→P, Т→T, Х→X; `<` → `∠`) → словарный разбор → `ParsedTask { points, relations, givens, source }` (типы — `architecture.md`). Сценарии: медиана, биссектриса, высота, градусная мера, параллельность, равенство, принадлежность, перпендикуляр. Длины («16 см») → `givens` без верификации. Тесты: обе testdata-задачи (`testdata/1-text.txt`, `testdata/2-text.txt`) обязаны парситься.
+**Logic:** `parseTask(text)` — чистая функция, TDD: нормализация омоглифов (А→A, В→B, С→C, К→K, М→M, Н→H, Е→E, О→O, Р→P, Т→T, Х→X; `<` → `∠`) → словарный разбор → `ParsedTask { points, relations, givens, source }` (типы — `architecture.md`). Сценарии: медиана, биссектриса, высота, градусная мера, параллельность, равенство, принадлежность, перпендикуляр. Длины («16 см») → `givens` без верификации. Тесты: обе testdata-задачи (`testdata/1-text.txt`, `testdata/2-text.txt`) обязаны парситься. **Done 2026-09-17** (`parseTask` → `ParseResult` ok/мягкая ошибка; чевианы в обеих формах записи («медиана BK» / «BK-медиана»); угловые меры вырезаются из текста перед equal/length-паттернами; единица длины обязательна; 25 новых тестов, 101/101).
 
 ### 09 Rule engine v2 (multi-rule verify)
 
@@ -107,7 +107,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 05 Graph assembly (Done 2026-09-13)
 - [x] 06 verify.ts + result UI (Done 2026-09-13)
 - [x] 07 Performance & polish (Done 2026-09-13)
-- [ ] 08 Rule domain + оффлайн-парсер (Phase 6)
+- [x] 08 Rule domain + оффлайн-парсер (Phase 6) (Done 2026-09-17)
 - [ ] 09 Rule engine v2 (Phase 6)
 - [ ] 10 Gemini fallback-клиент (Phase 6)
 - [ ] 11 UI v2: текст задачи + правила + подтверждение (Phase 6)

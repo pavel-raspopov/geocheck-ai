@@ -1,5 +1,44 @@
 # Memory — GeoCheck AI session log
 
+Last updated: 2026-09-17 (Session 9)
+
+
+## Session 9 — Phase 6/08: Rule domain + оффлайн-парсер (TDD)
+
+### What was built
+
+- **Фича 08 реализована (TDD, гейты зелёные).** План: `docs/superpowers/plans/2026-09-17-task-rules-verification.md`.
+- `src/pipeline/rules/types.ts` — `Segment`/`AngleName`/`Relation` (7 kind'ов)/`ParsedTask`/`ParseResult` (дискриминированное объединение `ok:true|ok:false` — мягкая ошибка вместо исключения, ТЗ §4).
+- `src/pipeline/rules/normalize.ts` (+ spec, 8 тестов) — `normalizeTaskText`: блочная замена омоглифов (А,В,С,К,М,Н,Е,О,Р,Т,Х → латиница, включая В в предлоге «В треугольнике»), `<`→`∠`, схлопывание пробелов.
+- `src/pipeline/rules/parse.ts` (+ spec, 17 тестов) — `parseTask`: треугольник («треугольник…») → чевианы в двух формах («медиана BK» / «BK-медиана», тире `-–—`) → угловые меры («∠ABC = 100°» и «угол ABC = 90», совпадения вырезаются пробелами перед equal/length-паттернами) → parallel (∥) / equal / on-segment («принадлежит отрезку», «лежит на отрезке») → длины → `givens` (обязательна единица мм|см|дм|км|м); dedup связей по JSON-ключу; `points` — sorted unique из relations.
+- **Acceptance:** обе testdata-задачи парсятся оффлайн: 1-text → median(BK,AC)+bisector(BM,ABC)+angle(ABC,100)+«AC = 16 см»; 2-text → median(BM,AC)+bisector(BK,ABC)+angle(ABC,84)+«AC = 16 м»; points [A,B,C,K,M].
+
+### Decisions made
+
+- **Givens-only задача (правил нет, «дано» есть) → ok:true с пустым relations:** UI покажет пустой список правил → пользователь сам решит фолбэк Gemini (human-in-the-loop). ok:false только если нет ни правил, ни givens.
+- Имя угла биссектрисы строится из треугольника: others = буквы треугольника без вершины чевианы (в порядке треугольника), angle = `o1+vertex+o2` (B→ABC, C→ACB).
+- Единица длины обязательна в паттерне givens — присваивание «AB = 5» без единицы не попадает ни в equal, ни в givens (защита от ложных срабатываний).
+- `noUncheckedIndexedAccess` действует и на строковые индексы (`s[0]` = `string | undefined`) — в чистом коде использовать `charAt()`.
+
+### Problems solved
+
+- TDD-фиксы ожиданий: (1) нормализация по ТЗ — блочная замена (Р→P, В→B даже в предлогах), а не «только в геометрических именах» — исправлены тесты, не код; (2) путь testdata из спеки — 3 уровня вверх (`../../../testdata`), не 4.
+- PowerShell ретранслирует stderr pnpm как NativeCommandError и ломает пайпы (`2>&1 | Select` рвёт вывод); гейты гонять только `cmd /c "pnpm … && echo PASS || echo FAIL"` без 2>&1 (набл. 2, подтверждена).
+
+### Current state
+
+- Гейты зелёные: 101/101 тестов (+25), typecheck ok, lint 0/0, build ok. v1-код (dropdown/verify.ts) не тронут. Рабочее дерево чистое после коммита фичи.
+
+### Next session starts with
+
+- **09 Rule engine v2** (`src/pipeline/rules/rules-engine.ts`, TDD): оценка `Relation[]` по графу; угловая геометрия verify.ts выносится в хелперы; агрегация `{results, verdict}` (Success ⇔ все Success); RU-сообщения (контракт: `Ошибка: Угол на рисунке равен 84.12°, отклонение составляет 5.88°` — без имени угла); тесты per-kind pass/fail/soft + агрегация + границы (M за B → Fail).
+
+### Open questions
+
+- ε=3.0 px для равенства отрезков на «фото» может оказаться жёстким — калибровать на шаге 12 (testdata-харнесс).
+- CORS Gemini REST в браузере — проверить живьём на шаге 10.
+
+
 Last updated: 2026-09-17 (Session 8)
 
 
