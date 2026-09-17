@@ -35,7 +35,7 @@ Read in this exact order before any implementation:
 9. `context/build-plan.md`
 10. `context/progress-tracker.md`
 
-`product-brief.md` (repo root) is the original Russian specification (ТЗ). `context/project-brief.md` is its agent-readable adaptation and the **single source of truth** for product requirements. Do not contradict them.
+`product-brief.md` (repo root) is the original Russian specification (ТЗ). §6 of it is the **project addendum** (team decisions from 2026-09-17: offline parser primary + Gemini manual fallback, human-in-the-loop rule confirmation, no `.env` key, unverifiable absolute lengths, testdata acceptance corpus) — treated as canonical alongside the ТЗ. `context/project-brief.md` is its agent-readable adaptation and the **single source of truth** for product requirements. Do not contradict them.
 
 ## Rules That Never Change
 

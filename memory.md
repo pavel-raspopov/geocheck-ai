@@ -9,6 +9,7 @@ Last updated: 2026-09-17 (Session 8)
 
 - **Git pull** (19fd00f → 9ffcb2b): новый ТЗ (`product-brief.md` ред. 2026-09-17) + acceptance-корпус `testdata/` (2 задачи: `1-text` + 3 фото, `2-text` + 1 фото; имя = `<задача>-photo[-(N)]?-<true|false>.jpg`). Чужой `package-lock.json` удалён (репо на pnpm).
 - **Workflow-доки синхронизированы с ТЗ v2** (коммит `docs(plan)`): `context/project-brief.md` (переписан), `architecture.md` (стадия text→rules, Rule-JSON-контракт, formulas v2, Env&Secrets), `build-plan.md` (Phase 6: 08–13), `progress-tracker.md`, `AGENTS.md` (pipeline 1–7), `.clinerules`, `PRODUCT.md`, `ui-registry.md` (task-text/rules-preview/gemini-fallback planned; rule-select deprecated), `library-docs.md` (Gemini REST, статус «not verified»).
+- **`product-brief.md` дополнен §6 (аддендум проекта)** — решения команды зафиксированы в самом ТЗ против дрейфа: оффлайн-парсер основной + Gemini ручной фолбэк, human-in-the-loop шлюз, без `.env`-ключа, длины не верифицируются, testdata-корпус, омоглифы; AGENTS.md ссылается на §6 как канон.
 - **План фичи:** `docs/superpowers/plans/2026-09-17-task-rules-verification.md`.
 
 ### Decisions made
