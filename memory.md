@@ -1,5 +1,47 @@
 # Memory — GeoCheck AI session log
 
+Last updated: 2026-09-17 (Session 8)
+
+
+## Session 8 — ТЗ v2: текст задачи → правила → мульти-верификация (Phase 6 kickoff)
+
+### What was built
+
+- **Git pull** (19fd00f → 9ffcb2b): новый ТЗ (`product-brief.md` ред. 2026-09-17) + acceptance-корпус `testdata/` (2 задачи: `1-text` + 3 фото, `2-text` + 1 фото; имя = `<задача>-photo[-(N)]?-<true|false>.jpg`). Чужой `package-lock.json` удалён (репо на pnpm).
+- **Workflow-доки синхронизированы с ТЗ v2** (коммит `docs(plan)`): `context/project-brief.md` (переписан), `architecture.md` (стадия text→rules, Rule-JSON-контракт, formulas v2, Env&Secrets), `build-plan.md` (Phase 6: 08–13), `progress-tracker.md`, `AGENTS.md` (pipeline 1–7), `.clinerules`, `PRODUCT.md`, `ui-registry.md` (task-text/rules-preview/gemini-fallback planned; rule-select deprecated), `library-docs.md` (Gemini REST, статус «not verified»).
+- **План фичи:** `docs/superpowers/plans/2026-09-17-task-rules-verification.md`.
+
+### Decisions made
+
+- **Human-in-the-loop flow (пользователь, дословно):** оффлайн-парсер — основной путь; правила показываются в UI; если верны → пользователь подтверждает → верификация (Gemini не нужен); если парсер не справился → пользователь открывает секцию с полем Google API key → Gemini дорабатывает → правила снова показываются → подтверждение → верификация. Верификация НИКОГДА не запускается по неподтверждённым правилам.
+- **Дефолтного ключа в `.env` НЕТ** (пользователь решил): в браузерном SPA `VITE_*` встраивается в бандл = публичный ключ. Key только через UI-поле (максимум localStorage), никогда в git.
+- **Задачу не решаем:** абсолютные длины («АС = 16 см») не верифицируются (нет масштаба см→px) — парсер извлекает их в `givens` «дано» без проверки.
+- **Rule-JSON контракт** (расширение примера ТЗ, tagged relations): `angle{angle,degrees}` / `parallel` / `equal` / `on-segment` / `median` / `bisector` / `height`; медиана = on-segment середины + equal половин; биссектриса = |∠ABM−∠MBC|; высота = ⊥+on-line; `angle` с N=90 обобщает перпендикуляр. Типы — `context/architecture.md`.
+- **Контракт строк обновлён:** фейл `Ошибка: Угол на рисунке равен 84.12°, отклонение составляет 5.88°` (без имени угла!); софт-ошибка прежняя. Бюджет «≤3 c» из ТЗ убран (downscale + timings остаются как практика).
+- Gemini-путь: REST `generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, `responseMimeType:'application/json'`, DI `fetchLike` (сеть не тестируем).
+- **Acceptance парсера: обе testdata-задачи обязаны парситься оффлайн** (иначе автоматический харнесс не работает без ключа).
+
+### Problems solved
+
+- Пользователь сначала описал изменения «по памяти» — на диске их не было; найдены через `git fetch` + `git diff main origin/main` (коммиты 128224b/4701ef5/9ffcb2b), потом `git pull --ff-only`.
+- **Кириллические омоглифы в testdata** («АВС», «ВМ», «∠АВС», `<АВС=84°`): парсеру нужна нормализация А→A, В→B, С→C, К→K, М→M, Н→H, Е→E, О→O, Р→P, Т→T, Х→X; `<`→`∠`.
+- Просмотр testdata глазами: «true»-чертёж задачи 1 БЕЗ пометки 100° (угол проверяется геометрией, не подписью); false-варианты — фиолетовые заливки/дуги/засечки (риск конкурирующих отрезков); 2-photo-true — шумный скан (проверка OCR-устойчивости).
+
+### Current state
+
+- Гейты зелёные (76/76 тестов, lint 0/0, typecheck ok; build не гонялся — правки только в md). Коммиты: `12ba114` (chore deps), `e427038` (docs plan). Рабочее дерево чистое.
+- Код v1 не тронут: dropdown/verify.ts v1 работают до проводки UI v2.
+
+### Next session starts with
+
+- **08 Rule domain + оффлайн-парсер** (TDD): `src/pipeline/rules/{types,normalize,parse}.ts` + спеки; acceptance: `parseTask(testdata/1-text)` → median(BK,AC)+bisector(BM,ABC)+angle(ABC,100)+givens; `2-text` → median+bisector+angle(84). План — `docs/superpowers/plans/2026-09-17-task-rules-verification.md`.
+
+### Open questions
+
+- ε=3.0 px для равенства отрезков на «фото» может оказаться жёстким — калибровать на testdata (пороги дедупа не трогать, ε — настройка UI).
+- CORS Gemini REST в браузере — проверить живьём на фазе 10.
+
+
 Last updated: 2026-09-13 (Session 7)
 
 
