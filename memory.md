@@ -1,6 +1,40 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-17 (Session 10)
+Last updated: 2026-09-17 (Session 11)
+
+
+## Session 11 — Phase 6/10: Gemini fallback-клиент (TDD)
+
+### What was built
+
+- **Фича 10 реализована (TDD, гейты зелёные).** План: `docs/superpowers/plans/2026-09-17-gemini-fallback.md`.
+- `src/pipeline/rules/gemini.ts` (+ spec, 10 тестов): `extractRulesGemini(text, apiKey, deps?)` → `ParseResult`. REST `gemini-2.0-flash:generateContent`, auth header `x-goog-api-key` (не query-param — ключ не светится в URL/логах), `generationConfig: {responseMimeType:'application/json', temperature:0}`. DI — минимальный структурный `FetchLike` (не `typeof fetch`, чтобы тесты не тянули DOM-типы); сеть в юнит-тестах не трогается.
+- Строгая `validateRuleJson(raw)`: A–Z после trim+uppercase (2/3/1 буквы), per-kind проверки всех 7 kind'ов, points sort+dedup, givens опциональны → `ParsedTask {source:'gemini'}`.
+- Мягкая ошибка `GEMINI_SOFT_ERROR = '[Status: Error] Не удалось разобрать текст задачи'` на: network reject, не-2xx, битый JSON, пустой candidates (safety), нарушенный контракт. Markdown-фенсы срезаются defensively.
+- UI не трогали (поле API key и кнопка «Уточнить через ИИ» — фича 11); `app.ts` не менялся.
+
+### Decisions made
+
+- **Auth через header `x-goog-api-key`** вместо `?key=` — ключ не попадает в URL/логи. Endpoint/body сверены с официальными доками (ai.google.dev/api/generate-content) перед реализацией; текст ответа — `candidates[0].content.parts[*].text` (parts может быть несколько — склеивать).
+- **Живой CORS-чек Gemini REST перенесён в фичу 11** — нужен реальный ключ пользователя в браузере; в этой сессии ключа не было. Endpoint документирован как CORS-enabled, но факт не проверен.
+
+### Problems solved
+
+- TS strict дважды укусил: `exactOptionalPropertyTypes` требует `init?: RequestInit | undefined` в тестовых типах; опечатка в cast-типе (`content` как массив вместо объекта) ломала optional chaining — cast-типы для внешних JSON проверять против схемы доки, не «на глаз».
+- PowerShell: `2>&1` на native-командах (pnpm.cmd) даёт NativeCommandError и маскирует вывод — записано в skill-observations (#15); использовать `| Select-Object -Last N` без `2>&1`.
+
+### Current state
+
+- Гейты зелёные: 130/130 тестов (+10), typecheck ok, lint 0/0, build ok, `pnpm preview` smoke dist/ = HTTP 200. Доки обновлены: `library-docs.md` (Gemini — verified), `build-plan.md` (10 done, чеклист), `progress-tracker.md`.
+
+### Next session starts with
+
+- **11 UI v2 (mock-first):** textarea текста задачи вместо rule-select; область «Распознанные правила»; кнопка «Подтвердить и проверить» (human-in-the-loop); скрытая секция фолбэка (поле API key + «Уточнить через ИИ» → `extractRulesGemini`); verdict-чеклист по правилам. Мок-данные → визуальная проверка → проводка; в той же сессии — живой CORS-чек.
+
+### Open questions
+
+- Живой CORS-чек Gemini REST в браузере (фича 11; если заблокирован — задокументировать фактическое поведение).
+- ε=3.0 px для равенства отрезков на «фото» — калибровать на шаге 12 (testdata-харнесс).
 
 
 ## Session 10 — Phase 6/09: Rule engine v2 (TDD)

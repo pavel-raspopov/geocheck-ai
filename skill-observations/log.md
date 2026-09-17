@@ -213,6 +213,19 @@
 
 **Principle:** Positional edits into a mutable file are stale the moment the file changes; anchor edits to content, not to line numbers, and verify join points after assembly.
 
+### Observation 15: PowerShell `2>&1` on native commands raises NativeCommandError and masks real output
+
+**Status:** OPEN
+**Date:** 2026-09-17
+**Session context:** GeoCheck AI feature 10 (gemini.ts) — running `pnpm.cmd vitest run ... 2>&1 | Select-Object` / `pnpm.cmd build 2>&1 | Select-Object` via run_commands on Windows PowerShell.
+**Skill:** general tooling (shell workflow, Windows PowerShell)
+
+**Issue:** Appending `2>&1` to a native command (`pnpm.cmd`) in PowerShell turns its stderr output (even benign script banners like `$ tsc --noEmit && vite build`) into a `NativeCommandError` record; the wrapper surfaces "Command exited with code 1" and the real stdout tail can be lost, making a healthy command look failed (and vice versa).
+
+**Suggested improvement:** On PowerShell, pipe native-command output with `| Select-Object -Last N` / `| Select-String 'pattern'` WITHOUT `2>&1`; accept stderr as-is. If stderr must be merged, set `$ErrorActionPreference = 'Continue'` and use `cmd /c "pnpm ... 2>&1"` instead.
+
+**Principle:** PowerShell's stderr-to-error-record redirection applies to native executables; never blanket-redirect native stderr through the PowerShell pipeline when the goal is just output capture.
+
 ## Archive
 
 See `archive/` for closed observations (moved here during weekly reviews).

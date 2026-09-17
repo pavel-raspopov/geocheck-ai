@@ -52,16 +52,13 @@
 
 - `pnpm lint` (oxlint, fast); `pnpm format` / `pnpm format:check` (Prettier). Both local — no CI server (GitHub only for final upload).
 
-## Google Gemini REST API (planned — Phase 6, feature 10; verify before implementing)
+## Google Gemini REST API (feature 10 — wired 2026-09-17, unit-tested with DI-mock fetch)
 
-> Status: **not yet wired** — notes below are from docs reading, not verified on this stack. Follow the rule: read official docs before implementation, then update this section with verified patterns.
-
-- **Endpoint (browser `fetch`, no SDK needed):** `POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=<API_KEY>` (или header `x-goog-api-key`). Body: `{ contents: [{ parts: [{ text }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0 } }`.
-- **`responseMimeType: 'application/json'`** forces JSON output — pair with a strict prompt (ТЗ: «Выдели из текста геометрические сущности. Выведи ответ строго в формате JSON…»). Our Rule-JSON contract: `architecture.md` («Domain Types», `ParsedTask`) — extends the ТЗ example `{"points": [...], "relations": [...]}` with tagged relations (`angle/parallel/equal/on-segment/median/bisector/height`).
-- **Fallback only:** client is called explicitly by the user (human-in-the-loop: парсер → просмотр правил → фолбэк при необходимости → подтверждение). API key comes from a UI input (optionally localStorage) — never from `.env`/repo (decision 2026-09-17; in a client-side bundle any build-time key would be public).
-- **DI for tests:** `extractRulesGemini(text, apiKey, fetchLike?)` — inject `fetch` (or a wrapper) so Vitest covers parsing/validation with recorded responses; never hit the network in unit tests.
-- **Soft failure:** network/4xx/invalid JSON → soft error `[Status: Error] Не удалось разобрать текст задачи` (failure model in `architecture.md`).
-- Expect CORS: the REST endpoint is CORS-enabled for browser use (to verify live in Phase 6; if blocked, document the actual behavior).
+- **Endpoint (browser `fetch`, no SDK):** `POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, auth header **`x-goog-api-key`** (chose header over `?key=` query param — keeps the key out of URLs/logs). Verified against official docs (ai.google.dev/api/generate-content): body `{ contents: [{ parts: [{ text }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0 } }`; response text at `candidates[0].content.parts[*].text` (parts may be multiple — join them).
+- **Implementation (`src/pipeline/rules/gemini.ts`):** `extractRulesGemini(text, apiKey, deps?)` → `ParseResult`; DI via minimal structural `FetchLike` (not `typeof fetch`) so tests stay off DOM types. `generationConfig.responseMimeType: 'application/json'` forces JSON output; prompt is a strict module constant describing the tagged Rule-JSON kinds.
+- **Validation:** `validateRuleJson(raw)` — letters `A–Z` after trim+uppercase (SEGMENT_RE 2 / ANGLE_RE 3 / POINT_RE 1), per-kind checks, points sorted+deduped, `givens` optional; returns `ParsedTask { source: 'gemini' }` or `null` → soft error `GEMINI_SOFT_ERROR = '[Status: Error] Не удалось разобрать текст задачи'` on: network reject, non-2xx, JSON.parse failure, missing candidates/parts, contract violation. Markdown fences stripped defensively.
+- **Fallback only:** called explicitly by the user (human-in-the-loop: парсер → просмотр правил → фолбэк → подтверждение). API key comes from a UI input (optionally localStorage) — never from `.env`/repo (decision 2026-09-17).
+- **CORS:** REST endpoint is documented CORS-enabled for browser use — **live browser check still pending** (needs a real user key; re-verify in feature 11 UI wiring and document actual behavior).
 
 ## Puppeteer (dev-only QA, not shipped)
 
