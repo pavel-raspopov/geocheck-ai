@@ -21,8 +21,9 @@ Cline-specific working rules for this repo. `AGENTS.md` and `context/*` are the 
 - **Pipeline logic is pure functions** in `src/pipeline/` (types/constants + stage modules): TDD with Vitest, no DOM/I/O inside. Geometry thresholds are constants in `src/pipeline/constants.ts` — 30 px, 5°, 7 px, 40 px, ε = 3.0 — never inline.
 - TypeScript **strict** (incl. `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`); no `any`; every module boundary typed.
 - **UI:** design tokens from `ui-tokens.md` (canonical) + root `DESIGN.md` (mirror) only — no raw hex/palette classes; numbers in `font-num` + `tabular-nums`.
-- **UI copy in Russian; ТЗ message strings are contract** — soft error `[Status: Error] Точка X не найдена на чертеже`; fail `Ошибка: Угол ABC на рисунке равен 84.12°, отклонение составляет 5.88°`.
-- **Secrets:** never write real keys/tokens into tracked files. There is no `.env` in this repo (browser-only).
+- **UI copy in Russian; ТЗ message strings are contract** — soft error `[Status: Error] Точка X не найдена на чертеже`; fail `Ошибка: Угол на рисунке равен 84.12°, отклонение составляет 5.88°` (ТЗ ред. 2026-09-17: без имени угла; numbers dynamic).
+- **Text→rules:** оффлайн-парсер — основной путь (чистая функция, TDD); Gemini — ТОЛЬКО ручной фолбэк после просмотра результата парсера; правила всегда проходят подтверждение пользователя до верификации (human-in-the-loop шлюз).
+- **Secrets:** never write real keys/tokens into tracked files. Дефолтного ключа в `.env` НЕТ (решение 2026-09-17): Google API key вводится пользователем в UI-поле fallback-секции, максимум localStorage; в репозитории ключей нет.
 
 ## 4. Feature lifecycle
 

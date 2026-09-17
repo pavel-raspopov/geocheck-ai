@@ -79,35 +79,48 @@ GeoCheck AI automatically verifies whether a raster drawing matches a textual ge
 
 ## Stack (locked)
 
-| Layer    | Tool                                     | Purpose                            |
-| -------- | ---------------------------------------- | ---------------------------------- |
-| App      | Vite + TypeScript (vanilla SPA)          | Single-page UI, no framework       |
-| CV       | OpenCV.js (`@techstark/opencv-js`, WASM) | Line segment detection             |
-| OCR      | Tesseract.js (WASM)                      | Single Latin letters A–Z + centers |
-| Tests    | Vitest 4                                 | TDD on `src/pipeline/*`            |
-| Quality  | TypeScript strict · oxlint · Prettier    | Local gates (`pnpm …`)             |
-| Delivery | `pnpm build` → static `dist/`            | No server, no DB, no Docker        |
+| Layer      | Tool                                              | Purpose                            |
+| ---------- | ------------------------------------------------- | ---------------------------------- |
+| App        | Vite + TypeScript (vanilla SPA)                   | Single-page UI, no framework       |
+| CV         | OpenCV.js (`@techstark/opencv-js`, WASM)          | Line segment detection             |
+| OCR        | Tesseract.js (WASM)                               | Single Latin letters A–Z + centers |
+| Text→Rules | Оффлайн-парсер (pure TS) + Gemini REST (fallback) | Извлечение правил из текста задачи |
+| Tests      | Vitest 4                                          | TDD on `src/pipeline/*`            |
+| Quality    | TypeScript strict · oxlint · Prettier             | Local gates (`pnpm …`)             |
+| Delivery   | `pnpm build` → static `dist/`                     | No server, no DB, no Docker        |
 
 ## Critical Rules
 
-### Pipeline (stage order is fixed — ТЗ §2)
+### Pipeline (stage order — ТЗ §2, ред. 2026-09-17)
 
 1. **lines** — detect segments (min length 30 px)
 2. **dedup** — cluster (angle diff ≤ 5°, distance ≤ 7 px), merge to the two farthest endpoints
 3. **ocr** — single Latin letters A–Z, uppercase, center coordinates
 4. **graph** — vertex = intersection of filtered segments; bind a letter to the nearest vertex ≤ 40 px
-5. **verify** — check the selected rule with ε (default 3.0): perpendicularity, parallelism, segment equality, point-on-segment
+5. **text→rules** — оффлайн-парсер текста задачи → Rule-JSON (`src/pipeline/rules/`); Gemini REST — только ручной фолбэк с API key из UI
+6. **confirm (human-in-the-loop)** — правила показываются пользователю; верификация только после явного подтверждения
+7. **verify** — проверка ВСЕХ подтверждённых правил с ε (default 3.0): angle (любая мера), parallel, equal, on-segment, median, bisector, height
 
 ### Formulas (see `context/architecture.md`)
 
-- Perpendicular: `acos(dot(BA, BC) / (|BA|·|BC|))` — deviation from 90° ≤ ε
+- Angle measure: `acos(dot(BA, BC) / (|BA|·|BC|))` — |angle − N| ≤ ε (N = 90 — perpendicularity)
 - Parallel: `asin(|cross(AB, CD)| / (|AB|·|CD|))` ≤ ε
 - Equal segments: `||AB| − |CD||` ≤ ε px
 - Point on segment: `(AM + MB) − AB` ≤ ε px (triangle inequality puts M strictly between A and B)
+- Median (BK→AC): on-segment(K, AC) + |AK − KC| ≤ ε px
+- Bisector (BM∠ABC): |∠ABM − ∠MBC| ≤ ε°
+- Height (BM→AC): BM ⊥ AC (≤ ε°) + foot on line AC
 
 ### Failure model
 
-Missing label → soft error `[Status: Error] Точка X не найдена на чертеже` (no exceptions, no crashes).
+Missing label → soft error `[Status: Error] Точка X не найдена на чертеже` (no exceptions, no crashes). Invalid LLM output / пустой парсинг → мягкая ошибка, не падение.
+
+### Important Notes (ТЗ ред. 2026-09-17)
+
+- **Не решаем задачу, а проверяем чертёж.** Абсолютные длины («АС = 16 см») не верифицируются (нет масштаба см→px) — извлекаются как «дано».
+- В текстах задач кириллические омоглифы (А/В/С/К/М…) — нормализация до парсинга и сопоставления с OCR.
+- testdata/ (`N-text.txt` + `N-photo…-true|false.jpg`) — acceptance-корпус; парсер обязан покрыть обе задачи без ИИ.
+- Дефолтного ключа в `.env` НЕТ (решение 2026-09-17); API key только через UI-поле фолбэка.
 
 ## Important Notes
 

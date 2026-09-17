@@ -52,6 +52,17 @@
 
 - `pnpm lint` (oxlint, fast); `pnpm format` / `pnpm format:check` (Prettier). Both local — no CI server (GitHub only for final upload).
 
+## Google Gemini REST API (planned — Phase 6, feature 10; verify before implementing)
+
+> Status: **not yet wired** — notes below are from docs reading, not verified on this stack. Follow the rule: read official docs before implementation, then update this section with verified patterns.
+
+- **Endpoint (browser `fetch`, no SDK needed):** `POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=<API_KEY>` (или header `x-goog-api-key`). Body: `{ contents: [{ parts: [{ text }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0 } }`.
+- **`responseMimeType: 'application/json'`** forces JSON output — pair with a strict prompt (ТЗ: «Выдели из текста геометрические сущности. Выведи ответ строго в формате JSON…»). Our Rule-JSON contract: `architecture.md` («Domain Types», `ParsedTask`) — extends the ТЗ example `{"points": [...], "relations": [...]}` with tagged relations (`angle/parallel/equal/on-segment/median/bisector/height`).
+- **Fallback only:** client is called explicitly by the user (human-in-the-loop: парсер → просмотр правил → фолбэк при необходимости → подтверждение). API key comes from a UI input (optionally localStorage) — never from `.env`/repo (decision 2026-09-17; in a client-side bundle any build-time key would be public).
+- **DI for tests:** `extractRulesGemini(text, apiKey, fetchLike?)` — inject `fetch` (or a wrapper) so Vitest covers parsing/validation with recorded responses; never hit the network in unit tests.
+- **Soft failure:** network/4xx/invalid JSON → soft error `[Status: Error] Не удалось разобрать текст задачи` (failure model in `architecture.md`).
+- Expect CORS: the REST endpoint is CORS-enabled for browser use (to verify live in Phase 6; if blocked, document the actual behavior).
+
 ## Puppeteer (dev-only QA, not shipped)
 
 - Headless live-verification: `pnpm qa` → `scripts/qa/ui-shell.mjs` — serves `dist/` via `vite preview` (spawned from the script) and drives the **system Chrome** via `launch({ channel: 'chrome' })`.

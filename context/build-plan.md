@@ -67,6 +67,36 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 ---
 
+# Phase 6 — Task-text rules + multi-rule verification (v2, ТЗ ред. 2026-09-17)
+
+**Изменение требований:** вход = изображение + текст задачи; правила извлекаются из текста (оффлайн-парсер основной, Gemini фолбэк), пользователь подтверждает правила, верифицируются **все** подтверждённые правила. Dropdown правил удаляется. `testdata/` — acceptance-корпус.
+
+### 08 Rule domain + оффлайн-парсер (`src/pipeline/rules/`)
+
+**Logic:** `parseTask(text)` — чистая функция, TDD: нормализация омоглифов (А→A, В→B, С→C, К→K, М→M, Н→H, Е→E, О→O, Р→P, Т→T, Х→X; `<` → `∠`) → словарный разбор → `ParsedTask { points, relations, givens, source }` (типы — `architecture.md`). Сценарии: медиана, биссектриса, высота, градусная мера, параллельность, равенство, принадлежность, перпендикуляр. Длины («16 см») → `givens` без верификации. Тесты: обе testdata-задачи (`testdata/1-text.txt`, `testdata/2-text.txt`) обязаны парситься.
+
+### 09 Rule engine v2 (multi-rule verify)
+
+**Logic:** `rules-engine.ts` — оценка списка `Relation[]` по графу; новые проверки: `angle` (произвольная мера N°, |∠−N| ≤ ε), `median` (on-segment + equal), `bisector` (|∠ABM − ∠MBC| ≤ ε), `height` (⊥ + on-line); базовые 4 переиспользуются. Агрегация: Success ⇔ все Success; сообщения RU (контракт обновлён: `Ошибка: Угол на рисунке равен 84.12°, отклонение составляет 5.88°` — без имени угла). Мягкие ошибки сохраняются.
+
+### 10 Gemini fallback-клиент
+
+**Logic:** `extractRulesGemini(text, apiKey, deps?)` — REST `generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, strict prompt → Rule-JSON (`responseMimeType: application/json`), валидация, DI-мок для тестов. Невалидный ответ → мягкая ошибка. Вызывается ТОЛЬКО по явному действию пользователя (после просмотра результата парсера). API key — только из UI-поля; не в git, не в `.env`.
+
+### 11 UI v2 (mock-first): текст задачи + предпросмотр правил + подтверждение
+
+**UI:** поле текста задачи (textarea) вместо `rule-select`; область «Распознанные правила» (человекочитаемый список + «дано»); кнопка «Подтвердить и проверить» (human-in-the-loop шлюз); скрытая секция фолбэка с полем API key + кнопкой «Уточнить через ИИ»; verdict-чеклист (по правилу на строку + общий итог). Мок-данные правил → визуальная проверка → проводка.
+
+### 12 testdata-харнесс (`scripts/qa/testdata.mjs`)
+
+**Logic:** puppeteer-прогон связок `testdata/N-text.txt` × `testdata/N-photo*-true|false.jpg` через собранный `dist/`; сверка вердикта с суффиксом имени файла. Цель: 4/4 связки зелёные (2 задачи: 1 true + 2 false; 2: 1 true). Калибровка порогов/промпта при необходимости.
+
+### 13 Live QA + доки
+
+`pnpm qa` дополнить шагами нового флоу; README («Как это работает: текст → правила → проверка»); финальный коммит фазы.
+
+---
+
 ## Phase Checklist (mirrors progress-tracker)
 
 - [x] 00 Project scaffold + AI harness
@@ -77,3 +107,9 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 05 Graph assembly (Done 2026-09-13)
 - [x] 06 verify.ts + result UI (Done 2026-09-13)
 - [x] 07 Performance & polish (Done 2026-09-13)
+- [ ] 08 Rule domain + оффлайн-парсер (Phase 6)
+- [ ] 09 Rule engine v2 (Phase 6)
+- [ ] 10 Gemini fallback-клиент (Phase 6)
+- [ ] 11 UI v2: текст задачи + правила + подтверждение (Phase 6)
+- [ ] 12 testdata-харнесс (Phase 6)
+- [ ] 13 Live QA + доки (Phase 6)
