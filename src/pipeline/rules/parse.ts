@@ -192,4 +192,3 @@ export function parseTask(rawText: string): ParseResult {
   const task: ParsedTask = { points, relations, givens, source: 'parser' };
   return { ok: true, task };
 }
-

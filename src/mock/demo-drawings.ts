@@ -93,3 +93,9 @@ export const TILTED_DEMO: DemoDrawing = {
 
 /** Все демо-сценарии для выпадающего списка. */
 export const DEMO_DRAWINGS: readonly DemoDrawing[] = [IDEAL_DEMO, TILTED_DEMO];
+
+/**
+ * Текст задачи, которому соответствуют обе демо-сцены: идеальная проходит все
+ * 4 правила, наклонная даёт Fail по ∠ABC (= 84.12°) и M-за-B (кейс ТЗ §5).
+ */
+export const DEMO_TASK_TEXT = '∠ABC = 90°, AB ∥ CD, AB = CD, точка M лежит на отрезке AB';

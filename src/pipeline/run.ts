@@ -6,6 +6,9 @@ import { buildGraph } from './graph';
 import { verify } from './verify';
 import type { Label, LineSegment, Rule, Vertex, VerifyResult } from './types';
 
+/** Результат анализа без вердикта: вход для мульт-проверки `evaluateRules` (фича 11). */
+export type AnalyzeResult = Omit<PipelineResult, 'verdict'>;
+
 /** Подмена стадий для тестов; в продакшене все стадии дефолтные. */
 export interface PipelineDeps {
   detectSegments?: (image: RawImage) => Promise<LineSegment[]>;
@@ -34,24 +37,14 @@ export interface StageTimings {
 }
 
 /**
- * Полный анализ чертежа: детекция → дедупликация → OCR → граф → verify.
+ * Анализ чертежа без проверки правил: детекция → дедупликация → OCR → граф.
  * Асинхронность — только из-за WASM-стадий; DOM не используется.
- * Пустая детекция — мягкая ошибка (не исключение): UI показывает её как вердикт.
+ * Результат — вход для мульт-проверки `evaluateRules` (фича 11).
  */
-export async function analyzeDrawing(
-  image: RawImage,
-  rule: Rule,
-  epsilon: number,
-  deps?: PipelineDeps,
-): Promise<PipelineResult> {
+export async function analyzeImage(image: RawImage, deps?: PipelineDeps): Promise<AnalyzeResult> {
   const detect = deps?.detectSegments ?? detectSegments;
   const recognize = deps?.recognizeLabels ?? recognizeLabels;
 
-  const emptyVerdict: VerifyResult = {
-    status: 'Error',
-    message: '[Status: Error] На чертеже не найдено отрезков',
-    epsilon,
-  };
   const t0 = performance.now();
   const detected = await detect(image);
   const detectMs = performance.now() - t0;
@@ -63,7 +56,6 @@ export async function analyzeDrawing(
       vertices: [],
       graph: {},
       unboundLabels: [],
-      verdict: emptyVerdict,
       timings: {
         detect: detectMs,
         recognize: 0,
@@ -80,22 +72,45 @@ export async function analyzeDrawing(
   const t2 = performance.now();
   const graphResult = buildGraph(segments, labels);
   const graphMs = performance.now() - t2;
-  const t3 = performance.now();
-  const verdict = verify({ graph: graphResult.graph, rule, epsilon });
-  const verifyMs = performance.now() - t3;
   return {
     segments,
     labels,
     vertices: graphResult.vertices,
     graph: graphResult.graph,
     unboundLabels: graphResult.unboundLabels,
-    verdict,
     timings: {
       detect: detectMs,
       recognize: recognizeMs,
       graph: graphMs,
-      verify: verifyMs,
+      verify: 0,
       total: performance.now() - t0,
     },
+  };
+}
+
+/**
+ * Полный анализ чертежа v1 (single-rule): analyzeImage + verify.
+ * Держится для существующих тестов и совместимости; UI v2 использует
+ * `analyzeImage` + `evaluateRules` напрямую.
+ */
+export async function analyzeDrawing(
+  image: RawImage,
+  rule: Rule,
+  epsilon: number,
+  deps?: PipelineDeps,
+): Promise<PipelineResult> {
+  const analysis = await analyzeImage(image, deps);
+  const t3 = performance.now();
+  const verdict = verify({ graph: analysis.graph, rule, epsilon });
+  const verifyMs = performance.now() - t3;
+  const emptyVerdict: VerifyResult = {
+    status: 'Error',
+    message: '[Status: Error] На чертеже не найдено отрезков',
+    epsilon,
+  };
+  return {
+    ...analysis,
+    verdict: analysis.segments.length === 0 ? emptyVerdict : verdict,
+    timings: { ...analysis.timings, verify: verifyMs, total: analysis.timings.total + verifyMs },
   };
 }

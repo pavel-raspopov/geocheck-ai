@@ -5,7 +5,10 @@ import { parseTask } from './parse';
 import type { Relation } from './types';
 
 const testdata = (name: string): string =>
-  readFileSync(fileURLToPath(new URL(`../../../testdata/${name}`, import.meta.url)), 'utf-8').trim();
+  readFileSync(
+    fileURLToPath(new URL(`../../../testdata/${name}`, import.meta.url)),
+    'utf-8',
+  ).trim();
 
 function sortedRelations(relations: Relation[]): Relation[] {
   return [...relations].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));

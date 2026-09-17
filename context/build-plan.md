@@ -88,6 +88,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 ### 11 UI v2 (mock-first): текст задачи + предпросмотр правил + подтверждение
 
 **UI:** поле текста задачи (textarea) вместо `rule-select`; область «Распознанные правила» (человекочитаемый список + «дано»); кнопка «Подтвердить и проверить» (human-in-the-loop шлюз); скрытая секция фолбэка с полем API key + кнопкой «Уточнить через ИИ»; verdict-чеклист (по правилу на строку + общий итог). Мок-данные правил → визуальная проверка → проводка.
+**Done 2026-09-17** (`src/ui/task-text.ts`, `rules-preview.ts`, `gemini-fallback.ts` (localStorage `geocheck.gemini-api-key`), `verdict-checklist.ts`, `relation-format.ts` (+9 тестов); `run.ts`: `analyzeImage()` без single-rule verify (+2 теста, `analyzeDrawing` делегирует); `demo-drawings.ts`: `DEMO_TASK_TEXT` (+2 теста — парсится в 4 правила, идеал Success/наклон Fail); `app.ts` v2: парсер на input → подтверждение → `evaluateRules`, ε-пересчёт на сохранённом графе, анализ переживает правку текста (без повторного OCR), пустая детекция → софт-ошибка «не найдено отрезков»; `rule-select.ts` удалён; QA ui-shell.mjs переписан на text→confirm флоу — 19/19, юниты 143/143, гейты зелёные. Живой CORS-чек — проба `scripts/qa/gemini-cors-probe.mjs` (из песочницы ответ не получен; нужна реальная сеть+ключ пользователя).
 
 ### 12 testdata-харнесс (`scripts/qa/testdata.mjs`)
 
@@ -112,6 +113,6 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 08 Rule domain + оффлайн-парсер (Phase 6) (Done 2026-09-17)
 - [x] 09 Rule engine v2 (Phase 6) (Done 2026-09-17)
 - [x] 10 Gemini fallback-клиент (Phase 6) (Done 2026-09-17)
-- [ ] 11 UI v2: текст задачи + правила + подтверждение (Phase 6)
+- [x] 11 UI v2: текст задачи + правила + подтверждение (Phase 6) (Done 2026-09-17)
 - [ ] 12 testdata-харнесс (Phase 6)
 - [ ] 13 Live QA + доки (Phase 6)

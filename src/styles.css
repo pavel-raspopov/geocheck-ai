@@ -318,3 +318,103 @@ a {
   margin: 0;
   color: var(--color-ink-3);
 }
+
+/* ── Фича 11: текст задачи, предпросмотр правил, фолбэк, чеклист ────── */
+
+.task-text-input {
+  resize: vertical;
+  min-height: 96px;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.rules-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rules-list {
+  margin: 0;
+  padding: 0 0 0 20px;
+  display: grid;
+  gap: 4px;
+}
+
+.rules-givens,
+.rules-source {
+  margin: 0;
+  color: var(--color-ink-2);
+  font-size: 0.875rem;
+}
+
+.rules-source {
+  color: var(--color-ink-3);
+  font-size: 0.8125rem;
+}
+
+.rules-error,
+.fallback-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
+
+.rules-error:empty,
+.fallback-error:empty {
+  display: none;
+}
+
+.fallback-details {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  padding: 8px 12px;
+}
+
+.fallback-details summary {
+  cursor: pointer;
+  color: var(--color-ink-2);
+  font-size: 0.9375rem;
+}
+
+.fallback-details[open] summary {
+  margin-bottom: 8px;
+}
+
+.fallback-hint {
+  margin: 0 0 10px;
+  color: var(--color-ink-3);
+  font-size: 0.8125rem;
+}
+
+.fallback-details .btn-primary {
+  margin-top: 10px;
+}
+
+.check-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.check-row:last-of-type {
+  border-bottom: none;
+}
+
+.check-row-fail .check-rule {
+  color: var(--color-danger);
+}
+
+.check-rule {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.check-message {
+  color: var(--color-ink-2);
+  font-size: 0.8125rem;
+}

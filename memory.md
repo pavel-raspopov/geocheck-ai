@@ -1,6 +1,44 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-17 (Session 11)
+Last updated: 2026-09-17 (Session 12)
+
+
+## Session 12 — Phase 6/11: UI v2 — текст задачи + подтверждение правил (TDD + QA)
+
+### What was built
+
+- **Фича 11 реализована (гейты зелёные: 143/143 юнитов, typecheck, lint 0/0, format:check, build, QA 19/19).** План: `docs/superpowers/plans/2026-09-17-ui-v2.md`.
+- Новые UI-модули: `task-text.ts` (textarea `#task-text`), `rules-preview.ts` (`{root, render(task, error)}`, кнопка `#confirm-rules` — human-in-the-loop шлюз), `gemini-fallback.ts` (`<details>`, поле API key → localStorage `geocheck.gemini-api-key`, автораскрытие при ошибке парсера), `verdict-checklist.ts` (чеклист по правилам + общий итог, `aria-live`), `relation-format.ts` (`formatRelation`/`formatTaskSummary`, 9 тестов).
+- `run.ts`: извлечён `analyzeImage()` (`AnalyzeResult = Omit<PipelineResult,'verdict'>`, +2 теста); `analyzeDrawing` v1 оставлен (делегирует, старые тесты живы); UI его больше не вызывает.
+- `demo-drawings.ts`: `DEMO_TASK_TEXT` = «∠ABC = 90°, AB ∥ CD, AB = CD, точка M лежит на отрезке AB» (+2 теста: парсится в 4 правила; идеал → Success, наклон → Fail).
+- `app.ts` переписан: парсер на каждый input → предпросмотр → подтверждение → `evaluateRules`; сценарии/ε пересчитывают на сохранённом графе; `rule-select.ts` и `verdict-card.ts` удалены; `ui-shell.mjs` переписан на text→confirm-флоу (19/19, вкл. unhappy-пути: нечитаемый текст → фолбэк раскрыт, пустой чертёж → «не найдено отрезков»).
+
+### Decisions made
+
+- **Правка текста НЕ сбрасывает анализ** (граф зависит только от изображения): повторное подтверждение пересчитывает `evaluateRules` без повторного OCR — сохранён v1-инвариант «без повторного OCR» (план предполагал сброс; отклонение осознанное).
+- **Пустая детекция в v2** → плейсхолдер `[Status: Error] На чертеже не найдено отрезков` (ТЗ §2) вместо Error-строк чеклиста: `runPipeline` возвращает рано при `segments.length === 0`.
+- **Демо-режим тоже через шлюз подтверждения** (авто-верdictа при старте больше нет) — QA кликает `#confirm-rules`; предпросмотр при старте засеян `DEMO_TASK_TEXT`.
+- ε-ползунок меняет вердикт без повторного подтверждения; сценарий демо переключается мгновенно при подтверждённых правилах.
+- Prettier-нормализация зацепила несколько старых файлов (line endings) — включена в коммит фичи.
+
+### Problems solved
+
+- QA-шаг «ε=6 → Success» сломался в v2: чеклист содержит `M ∈ AB`, который на наклонной сцене фейлится независимо от ε → ассерт переведён на строку угла (первая `.check-row .badge`).
+- Проба CORS Gemini (`scripts/qa/gemini-cors-probe.mjs`, невалидный ключ): из песочницы fetch ни resolve, ни reject за 60 с (egress заблокирован; без CORS-ошибки в консоли). Кнопка фолбэка при зависшем fetch остаётся busy — известное ограничение (AbortController вне скоупа). Живой чек с реальным ключом — за пользователем.
+
+### Current state
+
+- Гейты зелёные; `pnpm qa` 19/19 на `dist/`. Доки обновлены: build-plan (11 done), progress-tracker, ui-registry (task-text/rules-preview/gemini-fallback/relation-format/verdict-checklist shipped; rule-select/verdict-card removed), library-docs (CORS-секция переписана).
+
+### Next session starts with
+
+- **12 testdata-харнесс:** `scripts/qa/testdata.mjs` — puppeteer-прогон `testdata/1-text.txt`×`1-photo*-true|false.jpg`, `2-text.txt`×`2-photo-true.jpg` через `dist/`; сверка вердикта с суффиксом имени; калибровка ε=3.0.
+- Параллельно: живой CORS-чек Gemini (реальный ключ пользователя в браузере; проба готова).
+
+### Open questions
+
+- Живой CORS-чек Gemini REST (реальная сеть + ключ пользователя; из песочницы не проверить).
+- Зависший fetch в фолбэке (нет таймаута) — рассмотреть AbortController на шаге 13, если живой чек подтвердит проблему.
 
 
 ## Session 11 — Phase 6/10: Gemini fallback-клиент (TDD)

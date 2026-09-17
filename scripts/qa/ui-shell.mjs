@@ -106,11 +106,20 @@ try {
     (await page.$eval('.title', (el) => el.textContent)) === 'GeoCheck AI',
   );
 
-  // 2. Вердикт авто-запуска: идеальная сцена + perpendicular → Success.
-  await page.waitForSelector('.badge');
+  // 2. Фича 11: textarea с демо-текстом, подтверждение → чеклист 4 правила.
   check(
-    'авто-вердикт: «Верно» (Success)',
-    (await page.$eval('.badge', (el) => el.textContent)) === 'Верно',
+    'textarea текста задачи засеяна демо-текстом',
+    (await page.$eval('#task-text', (el) => el.value)).includes('∠ABC = 90°'),
+  );
+  check(
+    'предпросмотр: 4 распознанных правила',
+    (await page.$$eval('.rules-item', (els) => els.length)) === 4,
+  );
+  await page.click('#confirm-rules');
+  await page.waitForFunction(() => document.querySelectorAll('.check-row').length === 4);
+  check(
+    'демо: чеклист 4 строки, все «Верно»',
+    await page.$$eval('.check-row .badge', (els) => els.every((el) => el.textContent === 'Верно')),
   );
 
   // 3. Демо-чертёж реально нарисован на холсте.
@@ -123,43 +132,60 @@ try {
   });
   check('холст: демо-чертёж нарисован', hasInk);
 
-  // 4. Смена правила → сообщение о параллельности.
-  await page.select('#rule-select', 'parallel');
-  await page.waitForFunction(() =>
-    document.querySelector('.verdict-message')?.textContent.includes('параллельны'),
-  );
+  // 4. Правка текста → единственное правило parallel → Success.
+  const setTaskText = (text) =>
+    page.$eval(
+      '#task-text',
+      (el, v) => {
+        el.value = v;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      },
+      text,
+    );
+  await setTaskText('AB ∥ CD');
+  await page.waitForFunction(() => document.querySelectorAll('.rules-item').length === 1);
+  await page.click('#confirm-rules');
+  await page.waitForFunction(() => document.querySelectorAll('.check-row').length === 1);
   check(
-    'правило parallel: Success с сообщением о параллельности',
-    (await page.$eval('.badge', (el) => el.textContent)) === 'Верно',
+    'текст «AB ∥ CD»: Success с сообщением о параллельности',
+    (await page.$eval('.check-message', (el) => el.textContent)).includes('параллельны'),
   );
 
-  // 5. Сцена с отклонениями + perpendicular при ε = 3 → точный текст ТЗ.
+  // 5. Сцена с отклонениями + демо-текст при ε = 3 → точный текст ТЗ в строке угла.
   await page.select('#scenario-select', 'tilted');
-  await page.select('#rule-select', 'perpendicular');
+  await setTaskText('∠ABC = 90°, AB ∥ CD, AB = CD, точка M лежит на отрезке AB');
+  await page.waitForFunction(() => document.querySelectorAll('.rules-item').length === 4);
   await page.$eval('#eps-range', (el) => {
     el.value = '3';
     el.dispatchEvent(new Event('input', { bubbles: true }));
   });
+  await page.click('#confirm-rules');
   await page.waitForFunction(
     (expected) => {
-      return document.querySelector('.verdict-message')?.textContent === expected;
+      const msgs = [...document.querySelectorAll('.check-message')];
+      return msgs.length === 4 && msgs.some((el) => el.textContent === expected);
     },
-    {},
+    { timeout: 10000 },
     FAIL_TEXT,
   );
   check('отклонения, ε = 3: Fail с точным текстом ТЗ (84.12°/5.88°)', true);
 
-  // 6. Ползунок ε → 6: тот же чертёж становится Success (ε управляет движком).
+  // 6. Ползунок ε → 6: пересчёт на сохранённом графе — угловая строка снова «Верно»
+  // (строка M ∈ AB остаётся «Ошибка» — M за точкой B не зависит от ε).
   await page.$eval('#eps-range', (el) => {
     el.value = '6';
     el.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Верно');
-  check('ползунок ε = 6 на «отклонениях»: Success', true);
+  await page.waitForFunction(() => {
+    const angleBadge = document.querySelector('.check-row .badge');
+    return angleBadge?.textContent === 'Верно';
+  });
+  check('ползунок ε = 6 на «отклонениях»: строка угла снова Success', true);
 
-  // 7. Кнопка «Проверить» перезапускает вердикт.
-  await page.click('.btn-primary');
-  check('кнопка «Проверить»: вердикт на месте', (await page.$('.badge')) !== null);
+  // 7. Повторное подтверждение перезапускает проверку.
+  await page.click('#confirm-rules');
+  await page.waitForFunction(() => document.querySelectorAll('.check-row').length === 4);
+  check('кнопка «Подтвердить и проверить»: чеклист на месте', (await page.$('.badge')) !== null);
 
   // 8. Unhappy path: сброс не-изображения → мягкая ошибка в зоне загрузки.
   await page.evaluate(() => {
@@ -224,11 +250,13 @@ try {
   await page.waitForFunction(() =>
     document.querySelector('.verdict-empty')?.textContent.includes('Изображение загружено'),
   );
-  await page.click('.btn-primary');
+  await setTaskText('∠ABC = 90°');
+  await page.waitForFunction(() => document.querySelectorAll('.rules-item').length === 1);
+  await page.click('#confirm-rules');
   await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Верно', {
     timeout: 120000,
   });
-  const realMsg = await page.$eval('.verdict-message', (el) => el.textContent);
+  const realMsg = await page.$eval('.check-message', (el) => el.textContent);
   check('реальный пайплайн: ∠ABC = 90° → Success', realMsg.includes('Верно: угол ABC'));
 
   // 10. Даунскейл: большой чертёж (2000×1500 → 1600×1200) проходит полный пайплайн.
@@ -271,7 +299,7 @@ try {
   await page.waitForFunction(() =>
     document.querySelector('.verdict-empty')?.textContent.includes('Изображение загружено'),
   );
-  await page.click('.btn-primary');
+  await page.click('#confirm-rules');
   try {
     await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Верно', {
       timeout: 120000,
@@ -312,13 +340,15 @@ try {
   );
   check('битое изображение: мягкая ошибка «Не удалось прочитать изображение»', true);
 
-  // 13. Смена правила после анализа — мгновенный verify() на сохранённом графе
+  // 13. Смена текста после анализа — мгновенный пересчёт на сохранённом графе
   // (без повторного OCR): parallel требует точку D → контрактная мягкая ошибка.
-  await page.select('#rule-select', 'parallel');
-  await page.waitForFunction(() => document.querySelector('.badge')?.textContent === 'Ошибка', {
+  await setTaskText('AB ∥ CD');
+  await page.waitForFunction(() => document.querySelectorAll('.rules-item').length === 1);
+  await page.click('#confirm-rules');
+  await page.waitForFunction(() => document.querySelectorAll('.check-row').length === 1, {
     timeout: 5000,
   });
-  const parMsg = await page.$eval('.verdict-message', (el) => el.textContent);
+  const parMsg = await page.$eval('.check-message', (el) => el.textContent);
   check(
     'после анализа: parallel → мягкая ошибка «Точка D не найдена» без повторного OCR',
     parMsg.includes('Точка D не найдена'),
@@ -346,9 +376,9 @@ try {
   await page.waitForFunction(() =>
     document.querySelector('.verdict-empty')?.textContent.includes('Изображение загружено'),
   );
-  await page.click('.btn-primary');
+  await page.click('#confirm-rules');
   const blankMsg = await page.waitForFunction(
-    () => document.querySelector('.verdict-message')?.textContent ?? null,
+    () => document.querySelector('.verdict-empty')?.textContent ?? null,
     { timeout: 120000 },
   );
   check(
@@ -356,13 +386,28 @@ try {
     blankMsg?.toString().includes('не найдено отрезков') ?? false,
   );
 
+  // 14a. Unhappy path (текст): нечитаемый текст → ошибка парсера + раскрытый фолбэк.
+  await setTaskText('бессмысленный текст без правил');
+  await page.waitForFunction(() => {
+    const err = document.querySelector('.rules-error');
+    return err !== null && err.textContent.includes('[Status: Error]');
+  });
+  const fallbackOpen = await page.$eval('.fallback-details', (el) => el.open);
+  const confirmDisabled = await page.$eval('#confirm-rules', (el) => el.disabled);
+  check(
+    'нечитаемый текст: мягкая ошибка, фолбэк раскрыт, подтверждение неактивно',
+    fallbackOpen && confirmDisabled,
+  );
+  await setTaskText('∠ABC = 90°');
+  await page.waitForFunction(() => document.querySelectorAll('.rules-item').length === 1);
+
   // 15. A11y-инварианты: доступные имена и клавиатура.
   const a11y = await page.evaluate(() => {
     const zone = document.querySelector('.upload-zone');
     const canvas = document.querySelector('#drawing-canvas');
     return {
       zoneRole: zone?.getAttribute('role') === 'button' && zone?.tabIndex === 0,
-      ruleInLabel: document.querySelectorAll('label.field #rule-select').length === 1,
+      taskInLabel: document.querySelectorAll('label.field #task-text').length === 1,
       epsInLabel: document.querySelectorAll('label.field #eps-range').length === 1,
       canvasAria:
         canvas?.getAttribute('role') === 'img' &&
@@ -371,7 +416,7 @@ try {
   });
   check(
     'a11y: upload role=button/tabindex, поля внутри label, canvas role=img + aria-label',
-    a11y.zoneRole && a11y.ruleInLabel && a11y.epsInLabel && a11y.canvasAria,
+    a11y.zoneRole && a11y.taskInLabel && a11y.epsInLabel && a11y.canvasAria,
   );
 
   // 16. Консоль: ожидаемый шум — 404 favicon; ожидаемая мягкая ошибка декода

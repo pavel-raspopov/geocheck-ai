@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { verify } from '../pipeline/verify';
 import type { Rule } from '../pipeline/types';
-import { DEMO_DRAWINGS, IDEAL_DEMO, TILTED_DEMO } from './demo-drawings';
+import { parseTask } from '../pipeline/rules/parse';
+import { evaluateRules } from '../pipeline/rules/rules-engine';
+import { DEMO_DRAWINGS, DEMO_TASK_TEXT, IDEAL_DEMO, TILTED_DEMO } from './demo-drawings';
 
 const ALL_RULES: readonly Rule[] = [
   'perpendicular',
@@ -9,6 +11,28 @@ const ALL_RULES: readonly Rule[] = [
   'equal-segments',
   'point-on-segment',
 ];
+
+describe('DEMO_TASK_TEXT (фича 11)', () => {
+  it('парсится в 4 правила и точки A,B,C,D,M', () => {
+    const parsed = parseTask(DEMO_TASK_TEXT);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.task.relations).toEqual([
+      { kind: 'angle', angle: 'ABC', degrees: 90 },
+      { kind: 'parallel', a: 'AB', b: 'CD' },
+      { kind: 'equal', a: 'AB', b: 'CD' },
+      { kind: 'on-segment', point: 'M', segment: 'AB' },
+    ]);
+    expect(parsed.task.points).toEqual(['A', 'B', 'C', 'D', 'M']);
+  });
+
+  it('идеальная сцена: все правила Success; наклонная: Fail', () => {
+    const parsed = parseTask(DEMO_TASK_TEXT);
+    if (!parsed.ok) throw new Error('demo text must parse');
+    expect(evaluateRules(IDEAL_DEMO.graph, parsed.task.relations, 3).verdict).toBe('Success');
+    expect(evaluateRules(TILTED_DEMO.graph, parsed.task.relations, 3).verdict).toBe('Fail');
+  });
+});
 
 describe('demo-drawings', () => {
   it('идеальный чертёж проходит все 4 правила при ε = 3.0', () => {

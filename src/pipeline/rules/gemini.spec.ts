@@ -33,7 +33,9 @@ const VALID_RULE = JSON.stringify({
 describe('extractRulesGemini (фолбэк: текст задачи → Rule-JSON через Gemini REST)', () => {
   it('happy path: валидный Rule-JSON → ok, source=gemini, DI-fetch получил URL/headers/body', async () => {
     const { fetch, calls } = fakeFetch(geminiBody(VALID_RULE));
-    const result = await extractRulesGemini('В треугольнике ABC…', 'test-key', { fetchLike: fetch });
+    const result = await extractRulesGemini('В треугольнике ABC…', 'test-key', {
+      fetchLike: fetch,
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error('валидный ответ обязан парситься');
     expect(result.task.source).toBe('gemini');

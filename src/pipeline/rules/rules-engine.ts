@@ -167,7 +167,12 @@ function checkMedian(
   const vertex = cevian.charAt(0);
   const onSide = checkOnSegment(points, end, side, epsilon);
   if (onSide.status !== 'Success') return onSide;
-  const halves = checkEqualSegments(points, seg(side.charAt(0), end), seg(end, side.charAt(1)), epsilon);
+  const halves = checkEqualSegments(
+    points,
+    seg(side.charAt(0), end),
+    seg(end, side.charAt(1)),
+    epsilon,
+  );
   if (halves.status !== 'Success') return halves;
   // Имя треугольника: конец стороны + вершина чевианы + другой конец стороны (B-медиана в ABC → ABC).
   const triangle = `${side.charAt(0)}${vertex}${side.charAt(1)}`;
@@ -244,7 +249,11 @@ function checkHeight(
 
 /* --- Диспетчер и агрегация --- */
 
-function evaluateOne(graph: Record<string, Vertex>, relation: Relation, epsilon: number): VerifyResult {
+function evaluateOne(
+  graph: Record<string, Vertex>,
+  relation: Relation,
+  epsilon: number,
+): VerifyResult {
   const need = (labels: string[]): { points: Record<string, Point> } | VerifyResult =>
     resolveAll(graph, labels, epsilon);
   switch (relation.kind) {
@@ -254,12 +263,26 @@ function evaluateOne(graph: Record<string, Vertex>, relation: Relation, epsilon:
       return 'points' in found ? checkAngle(found.points, a, relation.degrees, epsilon) : found;
     }
     case 'parallel': {
-      const found = need([relation.a.charAt(0), relation.a.charAt(1), relation.b.charAt(0), relation.b.charAt(1)]);
-      return 'points' in found ? checkParallel(found.points, relation.a, relation.b, epsilon) : found;
+      const found = need([
+        relation.a.charAt(0),
+        relation.a.charAt(1),
+        relation.b.charAt(0),
+        relation.b.charAt(1),
+      ]);
+      return 'points' in found
+        ? checkParallel(found.points, relation.a, relation.b, epsilon)
+        : found;
     }
     case 'equal': {
-      const found = need([relation.a.charAt(0), relation.a.charAt(1), relation.b.charAt(0), relation.b.charAt(1)]);
-      return 'points' in found ? checkEqualSegments(found.points, relation.a, relation.b, epsilon) : found;
+      const found = need([
+        relation.a.charAt(0),
+        relation.a.charAt(1),
+        relation.b.charAt(0),
+        relation.b.charAt(1),
+      ]);
+      return 'points' in found
+        ? checkEqualSegments(found.points, relation.a, relation.b, epsilon)
+        : found;
     }
     case 'on-segment': {
       const found = need([relation.point, relation.segment.charAt(0), relation.segment.charAt(1)]);
@@ -269,10 +292,14 @@ function evaluateOne(graph: Record<string, Vertex>, relation: Relation, epsilon:
     }
     case 'median': {
       const found = need([
-        relation.cevian.charAt(0), relation.cevian.charAt(1),
-        relation.side.charAt(0), relation.side.charAt(1),
+        relation.cevian.charAt(0),
+        relation.cevian.charAt(1),
+        relation.side.charAt(0),
+        relation.side.charAt(1),
       ]);
-      return 'points' in found ? checkMedian(found.points, relation.cevian, relation.side, epsilon) : found;
+      return 'points' in found
+        ? checkMedian(found.points, relation.cevian, relation.side, epsilon)
+        : found;
     }
     case 'bisector': {
       const a = relation.angle;
@@ -281,10 +308,14 @@ function evaluateOne(graph: Record<string, Vertex>, relation: Relation, epsilon:
     }
     case 'height': {
       const found = need([
-        relation.cevian.charAt(0), relation.cevian.charAt(1),
-        relation.side.charAt(0), relation.side.charAt(1),
+        relation.cevian.charAt(0),
+        relation.cevian.charAt(1),
+        relation.side.charAt(0),
+        relation.side.charAt(1),
       ]);
-      return 'points' in found ? checkHeight(found.points, relation.cevian, relation.side, epsilon) : found;
+      return 'points' in found
+        ? checkHeight(found.points, relation.cevian, relation.side, epsilon)
+        : found;
     }
   }
 }
@@ -313,4 +344,3 @@ export function evaluateRules(
   }
   return { results, verdict };
 }
-

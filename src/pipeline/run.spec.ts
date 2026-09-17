@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyzeDrawing, type PipelineDeps } from './run';
+import { analyzeDrawing, analyzeImage, type PipelineDeps } from './run';
 import { TILTED_DEMO } from '../mock/demo-drawings';
 import { detectSegments } from './lines';
 import { deduplicateSegments } from './dedup';
@@ -29,6 +29,28 @@ const IDEAL: LineSegment[] = [
   seg('cd', 520, 320, 520, 100),
 ];
 const IDEAL_LABELS: Label[] = [label('A', 284, 92), label('B', 284, 328), label('C', 536, 328)];
+
+describe('analyzeImage (фича 11: анализ без single-rule verify)', () => {
+  it('возвращает стадии до вердикта: сегменты, граф, unboundLabels, timings', async () => {
+    const result = await analyzeImage(BLANK, stubDeps(IDEAL, IDEAL_LABELS));
+    expect(result.segments.map((s) => s.id)).toEqual(['seg-0', 'seg-1', 'seg-2']);
+    expect(result.graph.A).toBeDefined();
+    expect(result.graph.B).toBeDefined();
+    expect(result.graph.C).toBeDefined();
+    expect(result.unboundLabels).toEqual([]);
+    expect(result.timings.detect).toBeGreaterThanOrEqual(0);
+    expect('verdict' in result).toBe(false);
+  });
+
+  it('пустая детекция: пустые сегменты/граф/ноты, без ошибки', async () => {
+    const result = await analyzeImage(BLANK, stubDeps([], []));
+    expect(result.segments).toEqual([]);
+    expect(result.graph).toEqual({});
+    expect(result.unboundLabels).toEqual([]);
+    expect(result.timings.recognize).toBe(0);
+    expect('verdict' in result).toBe(false);
+  });
+});
 
 describe('analyzeDrawing (DI, детерминированно)', () => {
   it('проводит стадии: идеальный прямой угол → Success с точным текстом', async () => {

@@ -1,23 +1,25 @@
-import type { Rule, VerifyResult } from '../pipeline/types';
-import { verify } from '../pipeline/verify';
-import { analyzeDrawing, type PipelineResult } from '../pipeline/run';
+import { parseTask } from '../pipeline/rules/parse';
+import { extractRulesGemini, GEMINI_SOFT_ERROR } from '../pipeline/rules/gemini';
+import { evaluateRules, type RulesEvaluation } from '../pipeline/rules/rules-engine';
+import { analyzeImage, type AnalyzeResult } from '../pipeline/run';
 import { DEMO_DRAWINGS } from '../mock/demo-drawings';
 import { createCanvasCard, renderCanvas, type CanvasOverlay } from './canvas-view';
+import { createChecklistCard, setChecklistPlaceholder, updateChecklist } from './verdict-checklist';
 import { createEpsilonSlider } from './epsilon-slider';
+import { createGeminiFallback } from './gemini-fallback';
 import { fileToRawImage } from './image-input';
-import { createRuleSelect } from './rule-select';
+import { createRulesPreview } from './rules-preview';
+import { createTaskText } from './task-text';
 import { createUploadZone } from './upload-zone';
-import { createVerdictCard, setVerdictPlaceholder, updateVerdictCard } from './verdict-card';
 import { formatTimings } from './types';
 import type { AppState } from './types';
 import { createInitialState } from './types';
 
 /**
- * Сборка одноэкранного SPA (Фаза 4): DOM строится один раз, динамика обновляется
- * по состоянию. Без загруженного изображения — демо-режим (мгновенный verify()
- * на графе демо-сцены); с изображением полный пайплайн запускает кнопка
- * «Проверить», а смена правила/ε пересчитывает только verify() на сохранённом
- * графе (OCR/OpenCV заново не запускаются).
+ * Сборка одноэкранного SPA v2 (фича 11): текст задачи → парсер → предпросмотр
+ * правил → подтверждение (human-in-the-loop) → мульт-проверка evaluateRules.
+ * С изображением — полный анализ (CV/OCR один раз, дальше пересчёт по графу);
+ * без изображения — мгновенная проверка на графе демо-сцены.
  */
 export function createApp(root: HTMLElement): void {
   const state: AppState = createInitialState();
@@ -37,29 +39,31 @@ export function createApp(root: HTMLElement): void {
 
   const uploadZone = createUploadZone(onFile);
   const { card: canvasCard, canvas } = createCanvasCard(uploadZone);
-  const verdictCard = createVerdictCard();
+  const checklistCard = createChecklistCard();
 
-  const ruleControl = createRuleSelect(state.rule, onRuleChange);
+  const taskControl = createTaskText(state.taskText, onTaskText);
+  const preview = createRulesPreview(onConfirm);
+  const fallback = createGeminiFallback(onGeminiExtract);
   const epsilonControl = createEpsilonSlider(state.epsilon, onEpsilonChange);
   const scenarioSelect = createScenarioSelect();
-  const verifyButton = document.createElement('button');
-  verifyButton.type = 'button';
-  verifyButton.className = 'btn-primary';
-  verifyButton.textContent = 'Проверить';
-  verifyButton.addEventListener('click', () => {
-    void runPipeline();
-  });
 
   const controls = document.createElement('section');
   controls.className = 'card controls-card';
   const controlsHeadline = document.createElement('h2');
   controlsHeadline.className = 'headline';
   controlsHeadline.textContent = 'Параметры проверки';
-  controls.append(controlsHeadline, ruleControl, epsilonControl, scenarioSelect, verifyButton);
+  controls.append(
+    controlsHeadline,
+    taskControl,
+    preview.root,
+    fallback.root,
+    epsilonControl,
+    scenarioSelect,
+  );
 
-  root.append(topbar, canvasCard, controls, verdictCard);
+  root.append(topbar, canvasCard, controls, checklistCard);
   refreshCanvas();
-  runDemo();
+  onTaskText(state.taskText); // стартовый разбор демо-текста → предпросмотр готов к подтверждению
 
   function createScenarioSelect(): HTMLElement {
     const label = document.createElement('label');
@@ -80,17 +84,13 @@ export function createApp(root: HTMLElement): void {
     select.addEventListener('change', () => {
       const demo = DEMO_DRAWINGS.find((d) => d.id === select.value);
       if (demo) {
-        update({ demo });
+        state.demo = demo;
+        refreshCanvas();
+        if (!state.imageUrl && state.confirmed) runDemoEvaluation();
       }
     });
     label.append(caption, select);
     return label;
-  }
-
-  function update(patch: Partial<AppState>): void {
-    Object.assign(state, patch);
-    refreshCanvas();
-    refreshVerdict();
   }
 
   function refreshCanvas(): void {
@@ -108,46 +108,72 @@ export function createApp(root: HTMLElement): void {
     };
   }
 
-  /** Демо-режим: мгновенный verify() на графе демо-сцены (без CV/OCR). */
-  function runDemo(): void {
-    applyVerdict(verify({ graph: state.demo.graph, rule: state.rule, epsilon: state.epsilon }), []);
+  /* --- Разбор текста и подтверждение правил (human-in-the-loop) --- */
+
+  function onTaskText(text: string): void {
+    state.taskText = text;
+    state.parsed = parseTask(text);
+    state.confirmed = null; // правка текста сбрасывает подтверждение
+    state.lastEvaluation = null;
+    renderPreview();
+    setChecklistPlaceholder(
+      checklistCard,
+      'Подтвердите правила и нажмите «Подтвердить и проверить».',
+    );
+    updateStatusDot(null);
   }
 
-  /** Пересчёт вердикта: полный анализ не повторяем — граф уже построен. */
-  function refreshVerdict(): void {
+  function renderPreview(): void {
+    if (state.parsed?.ok) {
+      preview.render(state.parsed.task, null);
+      fallback.setOpen(false);
+      fallback.setError(null);
+    } else {
+      preview.render(null, state.parsed?.error ?? null);
+      fallback.setOpen(state.parsed !== null); // не распарсилось → раскрыть фолбэк
+    }
+  }
+
+  function onConfirm(): void {
+    if (!state.parsed?.ok || state.analyzing || state.extracting) return;
+    state.confirmed = state.parsed.task;
+    if (state.imageUrl && state.raw) void runPipeline();
+    else runDemoEvaluation();
+  }
+
+  /* --- Проверка --- */
+
+  /** Демо-режим: мгновенный evaluateRules на графе демо-сцены (без CV/OCR). */
+  function runDemoEvaluation(): void {
+    if (!state.confirmed) return;
+    applyEvaluation(evaluateRules(state.demo.graph, state.confirmed.relations, state.epsilon), []);
+  }
+
+  /** Полный анализ загруженного изображения + мульт-проверка подтверждённых правил. */
+  async function runPipeline(): Promise<void> {
+    if (!state.raw || state.analyzing || !state.confirmed) return;
     if (state.analysis) {
-      const verdict = verify({
-        graph: state.analysis.graph,
-        rule: state.rule,
-        epsilon: state.epsilon,
-      });
-      applyVerdict(
-        verdict,
+      // Граф уже построен (изображение не менялось) — пересчёт без повторного CV/OCR.
+      applyEvaluation(
+        evaluateRules(state.analysis.graph, state.confirmed.relations, state.epsilon),
         softNotes(state.analysis.unboundLabels),
         formatTimings(state.analysis.timings),
       );
-    } else if (!state.imageUrl) {
-      runDemo();
-    }
-    // imageUrl && !analysis → ждём «Проверить»; карточку не трогаем.
-  }
-
-  /** Полный анализ загруженного изображения (кнопка «Проверить»). */
-  async function runPipeline(): Promise<void> {
-    if (!state.imageUrl) {
-      runDemo();
-      return;
-    }
-    if (!state.raw || state.analyzing) {
       return;
     }
     setBusy(true);
+    setChecklistPlaceholder(checklistCard, 'Анализ чертежа…');
     try {
-      const analysis: PipelineResult = await analyzeDrawing(state.raw, state.rule, state.epsilon);
+      const analysis: AnalyzeResult = await analyzeImage(state.raw);
+      if (analysis.segments.length === 0) {
+        setChecklistPlaceholder(checklistCard, '[Status: Error] На чертеже не найдено отрезков');
+        updateStatusDot('Error');
+        return;
+      }
       state.analysis = analysis;
       refreshCanvas();
-      applyVerdict(
-        analysis.verdict,
+      applyEvaluation(
+        evaluateRules(analysis.graph, state.confirmed.relations, state.epsilon),
         softNotes(analysis.unboundLabels),
         formatTimings(analysis.timings),
       );
@@ -156,14 +182,8 @@ export function createApp(root: HTMLElement): void {
         'Не удалось обработать изображение:',
         error instanceof Error ? error.stack : error,
       );
-      applyVerdict(
-        {
-          status: 'Error',
-          message: '[Status: Error] Не удалось обработать изображение',
-          epsilon: state.epsilon,
-        },
-        [],
-      );
+      setChecklistPlaceholder(checklistCard, '[Status: Error] Не удалось обработать изображение');
+      updateStatusDot('Error');
     } finally {
       setBusy(false);
     }
@@ -171,8 +191,8 @@ export function createApp(root: HTMLElement): void {
 
   function setBusy(busy: boolean): void {
     state.analyzing = busy;
-    verifyButton.disabled = busy;
-    verifyButton.textContent = busy ? 'Анализ…' : 'Проверить';
+    const confirm = preview.root.querySelector<HTMLButtonElement>('#confirm-rules');
+    if (confirm) confirm.disabled = busy;
   }
 
   /** Софт-ноты: метки, не привязанные к вершинам (ТЗ §2.5 «иначе drop»). */
@@ -180,46 +200,91 @@ export function createApp(root: HTMLElement): void {
     return unbound.map((label) => `Метка ${label.char} не привязана к вершине чертежа`);
   }
 
-  function applyVerdict(verdict: VerifyResult, notes: readonly string[], timing?: string): void {
-    state.lastVerdict = verdict;
-    updateVerdictCard(verdictCard, verdict, notes, timing);
-    updateStatusDot(verdict.status);
+  function applyEvaluation(
+    evaluation: RulesEvaluation,
+    notes: readonly string[],
+    timing?: string,
+  ): void {
+    state.lastEvaluation = evaluation;
+    updateChecklist(checklistCard, evaluation, notes, timing);
+    updateStatusDot(evaluation.verdict);
   }
 
-  function updateStatusDot(status: VerifyResult['status']): void {
+  function updateStatusDot(status: RulesEvaluation['verdict'] | null): void {
     statusDot.className =
       status === 'Success' ? 'status-dot status-dot-ok' : 'status-dot status-dot-danger';
   }
 
-  function onRuleChange(rule: Rule): void {
-    update({ rule });
+  function onEpsilonChange(epsilon: number): void {
+    state.epsilon = epsilon;
+    // Пересчёт на сохранённом графе (OCR/OpenCV заново не запускаются).
+    if (!state.confirmed) return;
+    if (state.analysis) {
+      applyEvaluation(
+        evaluateRules(state.analysis.graph, state.confirmed.relations, epsilon),
+        softNotes(state.analysis.unboundLabels),
+        formatTimings(state.analysis.timings),
+      );
+    } else if (!state.imageUrl) {
+      runDemoEvaluation();
+    }
   }
 
-  function onEpsilonChange(epsilon: number): void {
-    update({ epsilon });
+  /* --- Фолбэк Gemini (только по явному действию пользователя) --- */
+
+  async function onGeminiExtract(apiKey: string): Promise<void> {
+    if (state.extracting) return;
+    state.extracting = true;
+    fallback.setBusy(true);
+    fallback.setError(null);
+    try {
+      const result = await extractRulesGemini(state.taskText, apiKey);
+      if (result.ok) {
+        state.parsed = result;
+        state.confirmed = null;
+        state.lastEvaluation = null;
+        fallback.setOpen(false);
+        preview.render(result.task, null);
+        setChecklistPlaceholder(
+          checklistCard,
+          'Подтвердите правила и нажмите «Подтвердить и проверить».',
+        );
+        updateStatusDot(null);
+      } else {
+        fallback.setError(GEMINI_SOFT_ERROR);
+      }
+    } finally {
+      state.extracting = false;
+      fallback.setBusy(false);
+    }
   }
 
   /** Загрузка: декод с даунскейлом сразу (превью и анализ одного размера). */
   async function onFile(file: File): Promise<void> {
     const previous = state.imageUrl;
-    setBusy(true);
     try {
       const decoded = await fileToRawImage(file);
       if (previous) {
         URL.revokeObjectURL(previous);
       }
       state.analysis = null;
-      update({ file, imageUrl: decoded.previewUrl, raw: decoded.raw });
-      setVerdictPlaceholder(verdictCard, 'Изображение загружено. Нажмите «Проверить» для анализа.');
+      state.lastEvaluation = null;
+      state.imageUrl = decoded.previewUrl;
+      state.file = file;
+      state.raw = decoded.raw;
+      refreshCanvas();
+      setChecklistPlaceholder(
+        checklistCard,
+        'Изображение загружено. Подтвердите правила — чертёж будет проанализирован.',
+      );
+      updateStatusDot(null);
     } catch (error) {
       // Ожидаемый путь (битое изображение): мягкая ошибка в UI, детали — в консоль.
       console.error(
         'Не удалось прочитать изображение:',
         error instanceof Error ? error.stack : error,
       );
-      setVerdictPlaceholder(verdictCard, '[Status: Error] Не удалось прочитать изображение');
-    } finally {
-      setBusy(false);
+      setChecklistPlaceholder(checklistCard, '[Status: Error] Не удалось прочитать изображение');
     }
   }
 }

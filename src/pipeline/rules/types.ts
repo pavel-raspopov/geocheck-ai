@@ -31,6 +31,4 @@ export interface ParsedTask {
 }
 
 /** Результат `parseTask`: мягкая ошибка вместо исключения (ТЗ §4). */
-export type ParseResult =
-  | { ok: true; task: ParsedTask }
-  | { ok: false; error: string };
+export type ParseResult = { ok: true; task: ParsedTask } | { ok: false; error: string };

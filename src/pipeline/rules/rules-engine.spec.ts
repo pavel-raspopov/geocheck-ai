@@ -20,10 +20,9 @@ const deg = (d: number): [number, number] => [
 
 describe('evaluateRules: angle (имя угла в сообщении — решение 2026-09-17)', () => {
   it('∠ABC = 100° нарисован точно → Success', () => {
-    const { results, verdict } = evaluateRules(
-      graph({ A: deg(100), B: [0, 0], C: deg(0) }),
-      [{ kind: 'angle', angle: 'ABC', degrees: 100 }],
-    );
+    const { results, verdict } = evaluateRules(graph({ A: deg(100), B: [0, 0], C: deg(0) }), [
+      { kind: 'angle', angle: 'ABC', degrees: 100 },
+    ]);
     expect(results[0]!.result.status).toBe('Success');
     expect(results[0]!.result.message).toBe('Верно: угол ABC = 100.00° (в пределах ε = 3.00)');
     expect(verdict).toBe('Success');
@@ -45,10 +44,9 @@ describe('evaluateRules: angle (имя угла в сообщении — реш
 
 describe('evaluateRules: базовые правила (parallel / equal / on-segment)', () => {
   it('parallel: параллельные отрезки → Success', () => {
-    const { verdict } = evaluateRules(
-      graph({ A: [0, 0], B: [100, 0], C: [0, 40], D: [100, 40] }),
-      [{ kind: 'parallel', a: 'AB', b: 'CD' }],
-    );
+    const { verdict } = evaluateRules(graph({ A: [0, 0], B: [100, 0], C: [0, 40], D: [100, 40] }), [
+      { kind: 'parallel', a: 'AB', b: 'CD' },
+    ]);
     expect(verdict).toBe('Success');
   });
 
@@ -71,7 +69,9 @@ describe('evaluateRules: базовые правила (parallel / equal / on-se
       3.0,
     );
     expect(results[0]!.result.status).toBe('Fail');
-    expect(results[0]!.result.message).toBe('Ошибка: Точка M не лежит на отрезке AB (смещение 80.00 px)');
+    expect(results[0]!.result.message).toBe(
+      'Ошибка: Точка M не лежит на отрезке AB (смещение 80.00 px)',
+    );
   });
 });
 
@@ -107,7 +107,9 @@ describe('evaluateRules: median (on-segment + equal половин, один р�
       3.0,
     );
     expect(results[0]!.result.status).toBe('Fail');
-    expect(results[0]!.result.message).toBe('Ошибка: Точка K не лежит на отрезке AC (смещение 80.00 px)');
+    expect(results[0]!.result.message).toBe(
+      'Ошибка: Точка K не лежит на отрезке AC (смещение 80.00 px)',
+    );
   });
 });
 
@@ -120,7 +122,9 @@ describe('evaluateRules: bisector (|∠ABM − ∠MBC| ≤ ε)', () => {
       [BIS],
     );
     expect(results[0]!.result.status).toBe('Success');
-    expect(results[0]!.result.message).toBe('Верно: BM — биссектриса угла ABC (∠ABM = 25.00°, ∠MBC = 25.00°)');
+    expect(results[0]!.result.message).toBe(
+      'Верно: BM — биссектриса угла ABC (∠ABM = 25.00°, ∠MBC = 25.00°)',
+    );
     expect(verdict).toBe('Success');
   });
 
@@ -157,7 +161,9 @@ describe('evaluateRules: height (⊥ + точка на прямой сторон
       3.0,
     );
     expect(results[0]!.result.status).toBe('Fail');
-    expect(results[0]!.result.message).toMatch(/^Ошибка: BM не перпендикулярна AC: угол \d+\.\d{2}°$/);
+    expect(results[0]!.result.message).toMatch(
+      /^Ошибка: BM не перпендикулярна AC: угол \d+\.\d{2}°$/,
+    );
     expect(results[0]!.result.deviation).toBeGreaterThan(3.0);
   });
 
@@ -168,16 +174,17 @@ describe('evaluateRules: height (⊥ + точка на прямой сторон
       3.0,
     );
     expect(results[0]!.result.status).toBe('Fail');
-    expect(results[0]!.result.message).toBe('Ошибка: Точка M не лежит на прямой AC (расстояние 10.00 px)');
+    expect(results[0]!.result.message).toBe(
+      'Ошибка: Точка M не лежит на прямой AC (расстояние 10.00 px)',
+    );
   });
 });
 
 describe('evaluateRules: мягкие ошибки и агрегация', () => {
   it('ненайденная точка → Error с точным текстом ТЗ', () => {
-    const { results, verdict } = evaluateRules(
-      graph({ A: [0, 0], B: [0, 0] }),
-      [{ kind: 'angle', angle: 'ABD', degrees: 90 }],
-    );
+    const { results, verdict } = evaluateRules(graph({ A: [0, 0], B: [0, 0] }), [
+      { kind: 'angle', angle: 'ABD', degrees: 90 },
+    ]);
     expect(results[0]!.result.status).toBe('Error');
     expect(results[0]!.result.message).toBe('[Status: Error] Точка D не найдена на чертеже');
     expect(verdict).toBe('Error');
@@ -186,8 +193,14 @@ describe('evaluateRules: мягкие ошибки и агрегация', () =>
   it('Success + Fail → вердикт Fail', () => {
     const { verdict } = evaluateRules(
       graph({
-        A: [0, 0], B: [100, 0], C: [0, 40], D: [100, 40],
-        E: [0, 0], F: [100, 0], G: [200, 50], H: [250, 50],
+        A: [0, 0],
+        B: [100, 0],
+        C: [0, 40],
+        D: [100, 40],
+        E: [0, 0],
+        F: [100, 0],
+        G: [200, 50],
+        H: [250, 50],
       }),
       [
         { kind: 'parallel', a: 'AB', b: 'CD' },
@@ -218,10 +231,9 @@ describe('evaluateRules: мягкие ошибки и агрегация', () =>
   });
 
   it('ε по умолчанию = 3.0 (EPS_DEFAULT)', () => {
-    const { results } = evaluateRules(
-      graph({ A: deg(87.5), B: [0, 0], C: deg(0) }),
-      [{ kind: 'angle', angle: 'ABC', degrees: 90 }],
-    );
+    const { results } = evaluateRules(graph({ A: deg(87.5), B: [0, 0], C: deg(0) }), [
+      { kind: 'angle', angle: 'ABC', degrees: 90 },
+    ]);
     expect(results[0]!.result.epsilon).toBe(3.0);
   });
 
@@ -234,4 +246,3 @@ describe('evaluateRules: мягкие ошибки и агрегация', () =>
     expect(results[0]!.relation).toBe(rel);
   });
 });
-
