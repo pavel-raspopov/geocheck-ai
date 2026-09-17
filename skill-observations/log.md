@@ -197,6 +197,22 @@
 **Suggested improvement:** When generating or patching code through PowerShell strings, use single-quoted literals (or here-strings `@'...'@`) for any payload containing `$`; verify generated snippets with a targeted grep after writing.
 
 **Principle:** String payloads that are themselves code must be built with non-interpolating quoting; every shell-side code transformation needs a post-write syntax check.
+
+### Observation 14: sequential insert_line at computed line numbers corrupts multi-part file creation
+
+**Status:** OPEN
+**Date:** 2026-09-17
+**Session context:** Feature 09 rules-engine.ts + rules-engine.spec.ts creation (GeoCheck AI Phase 6); files written in multiple `insert_line` chunks because payloads exceeded the 6k-char editor limit.
+**Skill:** general tooling (file-editor workflow)
+**Type:** open-source
+**Phase/Area:** editor tooling / multi-part file assembly
+
+**Issue:** Building a large file via successive `insert_line` calls at pre-computed line numbers failed 3 times: each successful insert shifts subsequent line numbers, so the next insert landed mid-function (truncating its closing brace) or duplicated a block. Each corruption surfaced only later as a vitest PARSE_ERROR, costing several debug rounds.
+
+**Suggested improvement:** In editor-tool guidance: for multi-part file creation, either (a) use anchored `old_text`→`new_text` replacements with unique text anchors instead of positional `insert_line`, or (b) re-read the file (at least the join points) between inserts before computing the next line number. After assembly, a quick syntax check (test/parse of the file) should precede committing to further work.
+
+**Principle:** Positional edits into a mutable file are stale the moment the file changes; anchor edits to content, not to line numbers, and verify join points after assembly.
+
 ## Archive
 
 See `archive/` for closed observations (moved here during weekly reviews).

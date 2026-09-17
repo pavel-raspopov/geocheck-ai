@@ -1,58 +1,6 @@
 import { EPS_DEFAULT, MESSAGE_DECIMALS } from './constants';
-import type { Point, VerifyInput, VerifyResult, Vertex } from './types';
-
-const DEG = 180 / Math.PI;
-
-function dist(a: Point, b: Point): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function resolve(graph: Record<string, Vertex>, label: string): Point | undefined {
-  const vertex = graph[label];
-  return vertex ? { x: vertex.x, y: vertex.y } : undefined;
-}
-
-/**
- * Разрешает метки правила в точки графа. Если метки нет — возвращает мягкую
- * ошибку (ТЗ §4) вместо исключения: `[Status: Error] Точка X не найдена на чертеже`.
- */
-function resolveAll(
-  graph: Record<string, Vertex>,
-  labels: string[],
-  epsilon: number,
-): { points: Record<string, Point> } | VerifyResult {
-  const points: Record<string, Point> = {};
-  for (const label of labels) {
-    const p = resolve(graph, label);
-    if (!p) {
-      return {
-        status: 'Error',
-        message: `[Status: Error] Точка ${label} не найдена на чертеже`,
-        epsilon,
-      };
-    }
-    points[label] = p;
-  }
-  return { points };
-}
-
-/** Угол между векторами BA и BC (общее начало в B), в градусах [0..180]. */
-function cornerAngleDeg(ba: Point, bc: Point): number {
-  const dot = ba.x * bc.x + ba.y * bc.y;
-  const la = Math.hypot(ba.x, ba.y);
-  const lb = Math.hypot(bc.x, bc.y);
-  const cos = la === 0 || lb === 0 ? 0 : dot / (la * lb);
-  return Math.acos(Math.max(-1, Math.min(1, cos))) * DEG;
-}
-
-/** Угол между прямыми AB и CD, в градусах [0..90]. */
-function lineAngleDeg(ab: Point, cd: Point): number {
-  const cross = ab.x * cd.y - ab.y * cd.x;
-  const la = Math.hypot(ab.x, ab.y);
-  const lb = Math.hypot(cd.x, cd.y);
-  const sin = la === 0 || lb === 0 ? 0 : cross / (la * lb);
-  return Math.abs(Math.asin(Math.max(-1, Math.min(1, sin))) * DEG);
-}
+import { cornerAngleDeg, dist, lineAngleDeg, resolveAll } from './geometry';
+import type { VerifyInput, VerifyResult, Vertex } from './types';
 
 function verifyPerpendicular(graph: Record<string, Vertex>, epsilon: number): VerifyResult {
   const found = resolveAll(graph, ['A', 'B', 'C'], epsilon);

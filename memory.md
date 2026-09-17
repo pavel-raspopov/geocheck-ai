@@ -1,6 +1,38 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-17 (Session 9)
+Last updated: 2026-09-17 (Session 10)
+
+
+## Session 10 — Phase 6/09: Rule engine v2 (TDD)
+
+### What was built
+
+- **Фича 09 реализована (TDD, гейты зелёные).** План: `docs/superpowers/plans/2026-09-17-rules-engine-v2.md`.
+- `src/pipeline/rules/rules-engine.ts` (+ spec, 19 тестов) — `evaluateRules(graph, relations, ε?)` → `{ results: {relation, result}[], verdict }`. Per-kind: `angle` (с именем угла), `parallel`/`equal`/`on-segment` (тексты v1 с подставленными именами); составные: `median` (on-segment конца чевианы + equal половин), `bisector` (|∠ABM − ∠MBC| ≤ ε), `height` (⊥ + точка на **прямой** стороны, новый хелпер `pointLineDistance`). Диспетчер резолвит метки через `resolveAll` → мягкая ошибка `[Status: Error] Точка X не найдена на чертеже`.
+- `src/pipeline/geometry.ts` — геометрические хелперы, вынесенные из `verify.ts` (`dist`, `resolveAll`, `cornerAngleDeg`, `lineAngleDeg` + новый `pointLineDistance`); `verify.ts` делегирует, поведение v1 не изменено (10/10 зелёные).
+- Агрегация: Success ⇔ все Success; любой Error → Error (доминирует над Fail); пустой `relations[]` (givens-only) → Success с пустым списком.
+
+### Decisions made
+
+- **Имя угла в сообщении угла — решение пользователя** (отход от формулировки ТЗ ред. 2026-09-17 «без имени угла»): `Ошибка: Угол ABC на рисунке равен 84.12°, отклонение составляет 5.88°`, Success `Верно: угол ABC = 100.00° (в пределах ε = 3.00)`. Зафиксировано в `build-plan.md`.
+- Составное правило = один результат на relation: сообщение от провалившейся под-проверки; Success-сообщения: `BK — медиана треугольника ABC` (имя = side[0]+vertex+side[1]), `BM — биссектриса угла ABC (∠ABM = …, ∠MBC = …)`, `BM — высота к AC`.
+
+### Problems solved
+
+- **Editor `insert_line` по вычисленным номерам строк в один файл опасен:** последующие вставки сдвигают нумерацию → 3 раунда parse-error'ов (обрывы функций, дубли блоков) в rules-engine.ts/.spec.ts. Правило: для больших файлов — anchored replace-редактирование (уникальный old_text-якорь) или полная пересборка файла; после каждой вставки — перечитать стык. Записано в skill-observations (#14).
+
+### Current state
+
+- Гейты зелёные: 120/120 тестов (+19), typecheck ok, lint 0/0, build ok, `pnpm preview` smoke dist/ = HTTP 200. Рабочее дерево: только изменения фичи 09 (коммит следует за этим сохранением памяти).
+
+### Next session starts with
+
+- **10 Gemini fallback-клиент** (`src/pipeline/rules/gemini.ts`, TDD): `extractRulesGemini(text, apiKey, deps?)` — REST `generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, `responseMimeType: application/json`, strict prompt → Rule-JSON, валидация, DI-мок для тестов; невалидный ответ → мягкая ошибка; вызов ТОЛЬКО по явному действию пользователя. Живой CORS-чек REST в браузере (открытый вопрос).
+
+### Open questions
+
+- ε=3.0 px для равенства отрезков на «фото» может оказаться жёстким — калибровать на шаге 12 (testdata-харнесс).
+- CORS Gemini REST в браузере — проверить живьём на шаге 10.
 
 
 ## Session 9 — Phase 6/08: Rule domain + оффлайн-парсер (TDD)

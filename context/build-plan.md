@@ -77,7 +77,8 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 ### 09 Rule engine v2 (multi-rule verify)
 
-**Logic:** `rules-engine.ts` — оценка списка `Relation[]` по графу; новые проверки: `angle` (произвольная мера N°, |∠−N| ≤ ε), `median` (on-segment + equal), `bisector` (|∠ABM − ∠MBC| ≤ ε), `height` (⊥ + on-line); базовые 4 переиспользуются. Агрегация: Success ⇔ все Success; сообщения RU (контракт обновлён: `Ошибка: Угол на рисунке равен 84.12°, отклонение составляет 5.88°` — без имени угла). Мягкие ошибки сохраняются.
+**Logic:** `rules-engine.ts` — оценка списка `Relation[]` по графу; новые проверки: `angle` (произвольная мера N°, |∠−N| ≤ ε), `median` (on-segment + equal), `bisector` (|∠ABM − ∠MBC| ≤ ε), `height` (⊥ + on-line); базовые 4 переиспользуются. Агрегация: Success ⇔ все Success; Error доминирует над Fail; сообщения RU. **Имя угла в сообщении угла — решение пользователя 2026-09-17** (отход от формулировки ТЗ: `Ошибка: Угол ABC на рисунке равен 84.12°, отклонение составляет 5.88°`). Мягкие ошибки сохраняются.
+**Done 2026-09-17** (`evaluateRules` → `{ results: RuleOutcome[], verdict }`; составные правила = один результат на relation, сообщение от провалившейся под-проверки; пустой relations (givens-only) → Success; геометрические хелперы verify.ts вынесены в `geometry.ts` (`dist/resolveAll/cornerAngleDeg/lineAngleDeg/pointLineDistance`), v1-функции не изменены; 19 новых тестов, 120/120).
 
 ### 10 Gemini fallback-клиент
 
@@ -108,7 +109,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 06 verify.ts + result UI (Done 2026-09-13)
 - [x] 07 Performance & polish (Done 2026-09-13)
 - [x] 08 Rule domain + оффлайн-парсер (Phase 6) (Done 2026-09-17)
-- [ ] 09 Rule engine v2 (Phase 6)
+- [x] 09 Rule engine v2 (Phase 6) (Done 2026-09-17)
 - [ ] 10 Gemini fallback-клиент (Phase 6)
 - [ ] 11 UI v2: текст задачи + правила + подтверждение (Phase 6)
 - [ ] 12 testdata-харнесс (Phase 6)
