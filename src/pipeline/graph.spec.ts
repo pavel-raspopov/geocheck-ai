@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { buildGraph } from './graph';
-import { LABEL_RADIUS, ON_SEGMENT_TOLERANCE, VERTEX_MERGE_RADIUS } from './constants';
+import {
+  INTERSECTION_CORNER_TOLERANCE,
+  LABEL_RADIUS,
+  ON_SEGMENT_TOLERANCE,
+  VERTEX_MERGE_RADIUS,
+} from './constants';
 import { verify } from './verify';
 import type { Label, LineSegment } from './types';
 
@@ -50,8 +55,14 @@ describe('buildGraph: вершины', () => {
     expect(hasVertex(result.vertices, 150, 101)).toBe(true); // центроид (150,100)+(150,102)
   });
 
-  it('недолёт конца 4 px (> допуска) → вершины пересечения нет', () => {
+  it(`недолёт конца 4 px ≤ ${INTERSECTION_CORNER_TOLERANCE} px → угол по поддерживающим прямым`, () => {
     const result = buildGraph([seg(100, 100, 200, 100), seg(150, 104, 150, 150)], []);
+    // пересечение поддерживающих прямых (150,100) + конец (150,104) → центроид
+    expect(hasVertex(result.vertices, 150, 102)).toBe(true);
+  });
+
+  it(`недолёт конца 30 px (> ${INTERSECTION_CORNER_TOLERANCE}) → пересечение не засчитано`, () => {
+    const result = buildGraph([seg(100, 100, 200, 100), seg(150, 130, 150, 150)], []);
     const near = result.vertices.filter((v) => Math.hypot(v.x - 150, v.y - 100) < 3);
     expect(near).toHaveLength(0);
   });
@@ -81,10 +92,10 @@ describe('buildGraph: привязка меток', () => {
 
   it('метка привязывается к ближайшей из нескольких вершин', () => {
     const result = buildGraph(
-      [seg(100, 100, 110, 100), seg(150, 100, 250, 100)],
-      [label('K', 118, 100)],
+      [seg(100, 100, 120, 100), seg(170, 100, 250, 100)],
+      [label('K', 140, 100)],
     );
-    expect(result.graph.K).toMatchObject({ x: 110, y: 100 });
+    expect(result.graph.K).toMatchObject({ x: 120, y: 100 });
   });
 
   it('дубликат буквы: выигрывает привязка к ближайшей вершине', () => {

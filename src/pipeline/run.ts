@@ -1,7 +1,9 @@
-/** Проводка пайплайна (ТЗ §2): RawImage → вердикт + данные для UI-оверлея. */
+/** Пайплайн GeoCheck (ТЗ §2): RawImage → вердикт + данные для UI-оверлея. */
 import { detectSegments, type RawImage } from './lines';
 import { deduplicateSegments } from './dedup';
-import { recognizeLabels } from './ocr';
+import { recognizeChar, recognizeLabels, type CharCandidate } from './ocr';
+import { refineTargets, refineUnboundLabels } from './ocr-refine';
+import { OCR_REFINE_SKIP_RADIUS } from './constants';
 import { buildGraph } from './graph';
 import { verify } from './verify';
 import type { Label, LineSegment, Rule, Vertex, VerifyResult } from './types';
@@ -13,6 +15,8 @@ export type AnalyzeResult = Omit<PipelineResult, 'verdict'>;
 export interface PipelineDeps {
   detectSegments?: (image: RawImage) => Promise<LineSegment[]>;
   recognizeLabels?: (image: RawImage) => Promise<Label[]>;
+  /** Refine-проход: одиночный символ (PSM 10) на кропе остатка. */
+  recognizeChar?: (image: RawImage) => Promise<CharCandidate[]>;
 }
 
 /** Полный результат анализа: вход для UI (вердикт + оверлей + софт-ноты). */
@@ -67,10 +71,23 @@ export async function analyzeImage(image: RawImage, deps?: PipelineDeps): Promis
   }
 
   const t1 = performance.now();
-  const labels = await recognize(image);
+  const baseLabels = await recognize(image);
+  let graphResult = buildGraph(segments, baseLabels);
+
+  // Refine-проход: дочитывает метки, слитые с линиями (калибровка фичи 12).
+  const targets = refineTargets(graphResult.vertices, graphResult.graph, OCR_REFINE_SKIP_RADIUS);
+  let labels = baseLabels;
+  if (targets.length > 0) {
+    const extra = await refineUnboundLabels(image, segments, targets, {
+      recognizeChar: deps?.recognizeChar ?? recognizeChar,
+    });
+    if (extra.length > 0) {
+      labels = [...baseLabels, ...extra];
+      graphResult = buildGraph(segments, labels);
+    }
+  }
   const recognizeMs = performance.now() - t1;
   const t2 = performance.now();
-  const graphResult = buildGraph(segments, labels);
   const graphMs = performance.now() - t2;
   return {
     segments,

@@ -19,7 +19,20 @@ function label(char: string, cx: number, cy: number): Label {
   return { char, cx, cy };
 }
 function stubDeps(segments: LineSegment[], labels: Label[]): PipelineDeps {
-  return { detectSegments: async () => segments, recognizeLabels: async () => labels };
+  return {
+    detectSegments: async () => segments,
+    recognizeLabels: async () => labels,
+    recognizeChar: async () => [],
+  };
+}
+
+/** Ставит чёрный пиксель (заглушка «глифа» в окне локализации refine). */
+function setDot(img: RawImage, x: number, y: number): void {
+  const o = (y * img.width + x) * 4;
+  img.data[o] = 0;
+  img.data[o + 1] = 0;
+  img.data[o + 2] = 0;
+  img.data[o + 3] = 255;
 }
 
 /** Прямой угол при B: AB вертикаль, BC горизонталь (паттерн demo-drawings). */
@@ -49,6 +62,34 @@ describe('analyzeImage (фича 11: анализ без single-rule verify)', (
     expect(result.unboundLabels).toEqual([]);
     expect(result.timings.recognize).toBe(0);
     expect('verdict' in result).toBe(false);
+  });
+
+  it('refine-проход дочитывает метку на непомеченной вершине в стороне от помеченных', async () => {
+    // IDEAL: вершина (520,100) без метки — дальше 80 px от A/B/C → цель refine.
+    // В окне локализации оставляем «глиф» (чернильную точку), иначе цель пропускается.
+    const img: RawImage = {
+      width: 600,
+      height: 400,
+      data: new Uint8ClampedArray(600 * 400 * 4).fill(255),
+    };
+    setDot(img, 530, 90);
+    const deps: PipelineDeps = {
+      ...stubDeps(IDEAL, IDEAL_LABELS),
+      recognizeChar: async () => [{ char: 'K', cx: 0, cy: 0, confidence: 95 }],
+    };
+    const result = await analyzeImage(img, deps);
+    expect(result.graph.K).toBeDefined();
+    expect(result.labels.map((l) => l.char).sort()).toEqual(['A', 'B', 'C', 'K']);
+  });
+
+  it('refine-проход пропускает цели, если recognizeChar вернул мусор', async () => {
+    const deps: PipelineDeps = {
+      ...stubDeps(IDEAL, IDEAL_LABELS),
+      recognizeChar: async () => [{ char: 'k', cx: 0, cy: 0, confidence: 30 }],
+    };
+    const result = await analyzeImage(BLANK, deps);
+    expect(result.graph.K).toBeUndefined();
+    expect(result.labels.map((l) => l.char).sort()).toEqual(['A', 'B', 'C']);
   });
 });
 

@@ -3,9 +3,12 @@ import {
   OCR_CHAR_WHITELIST,
   OCR_LANG,
   OCR_MIN_CONFIDENCE,
+  OCR_PAD_PX,
   OCR_PSM,
+  OCR_PREP_SCALE,
   OCR_USER_DPI,
 } from './constants';
+import { padAndUpscale, toOriginPoint } from './ocr-prep';
 import type { RawImage } from './lines';
 import type { Label } from './types';
 
@@ -90,19 +93,29 @@ function* collectCandidates(page: OcrPage): Generator<OcrSymbolLike> {
 }
 
 /**
+ * Все латинские кандидаты с уверенностью (без порога): вход для пост-фильтров.
+ * Порядок детерминированный: сверху вниз, слева направо.
+ */
+export function extractCharCandidates(page: OcrPage): CharCandidate[] {
+  const out: CharCandidate[] = [];
+  for (const { text, confidence, bbox } of collectCandidates(page)) {
+    const char = text.trim().toUpperCase();
+    if (!isUppercaseLatin(char)) continue;
+    out.push({ char, cx: (bbox.x0 + bbox.x1) / 2, cy: (bbox.y0 + bbox.y1) / 2, confidence });
+  }
+  return out.sort((a, b) => a.cy - b.cy || a.cx - b.cx);
+}
+
+/**
  * Пост-фильтрация OCR (ТЗ §3.1): строго одиночные латинские буквы,
  * автоприведение к UPPERCASE (строчные → заглавные), центр = середина bbox.
  * LSTM-движок игнорирует tessedit_char_whitelist, поэтому фильтр здесь обязателен.
+ * minConf настраивается: refine-проход фильтрует по своему порогу.
  */
-export function extractLabels(page: OcrPage): Label[] {
-  const labels: Label[] = [];
-  for (const { text, confidence, bbox } of collectCandidates(page)) {
-    const char = text.trim().toUpperCase();
-    if (!isUppercaseLatin(char) || confidence < OCR_MIN_CONFIDENCE) continue;
-    labels.push({ char, cx: (bbox.x0 + bbox.x1) / 2, cy: (bbox.y0 + bbox.y1) / 2 });
-  }
-  // Детерминированный порядок: сверху вниз, слева направо.
-  return labels.sort((a, b) => a.cy - b.cy || a.cx - b.cx);
+export function extractLabels(page: OcrPage, minConf: number = OCR_MIN_CONFIDENCE): Label[] {
+  return extractCharCandidates(page)
+    .filter((c) => c.confidence >= minConf)
+    .map(({ char, cx, cy }) => ({ char, cx, cy }));
 }
 
 /** Переопределяемые пути (браузер — статика из public/; Vitest/Node — node_modules + локальный tessdata). */
@@ -165,8 +178,9 @@ async function loadWorker(options: OcrRuntimeOptions): Promise<TesseractWorkerLi
 }
 
 /**
- * OCR-стадия: RawImage → BMP → воркер → метки вершин (ТЗ §3.1).
- * Асинхронность — только из-за WASM-загрузки; DOM не используется.
+ * OCR-стадия: RawImage → подготовка (поля + апскейл) → BMP → воркер → метки
+ * вершин в координатах ОРИГИНАЛА (ТЗ §3.1). Асинхронность — только из-за
+ * WASM-загрузки; DOM не используется.
  */
 export async function recognizeLabels(
   image: RawImage,
@@ -176,9 +190,42 @@ export async function recognizeLabels(
   workerPromise ??= loadWorker(options);
   const worker = await workerPromise;
   // Явный output: дефолт v7 — только text, blocks не построится.
-  const { data } = await worker.recognize(encodeBmp(image), undefined, {
+  const prepared = padAndUpscale(image, OCR_PAD_PX, OCR_PREP_SCALE);
+  const { data } = await worker.recognize(encodeBmp(prepared), undefined, {
     blocks: true,
     text: false,
   });
-  return extractLabels(data);
+  return extractLabels(data).map((l) => {
+    const p = toOriginPoint(l.cx, l.cy, OCR_PAD_PX, OCR_PREP_SCALE);
+    return { char: l.char, cx: p.x, cy: p.y };
+  });
+}
+
+/** Кандидат одиночного символа refine-прохода: метка + уверенность. */
+export interface CharCandidate extends Label {
+  confidence: number;
+}
+
+/**
+ * Refine-распознавание одиночного символа (PSM 10) на кропе: возвращает ВСЕ
+ * латинские кандидаты с уверенностью (фильтрация по порогу — в ocr-refine).
+ * Возвращает PSM воркера к основному значению даже при ошибке распознавания.
+ */
+export async function recognizeChar(
+  image: RawImage,
+  overrides?: OcrRuntimeOptions,
+): Promise<CharCandidate[]> {
+  const options = { ...defaultOptions(), ...overrides };
+  workerPromise ??= loadWorker(options);
+  const worker = await workerPromise;
+  await worker.setParameters({ tessedit_pageseg_mode: '10' });
+  try {
+    const { data } = await worker.recognize(encodeBmp(image), undefined, {
+      blocks: true,
+      text: false,
+    });
+    return extractCharCandidates(data);
+  } finally {
+    await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM });
+  }
 }

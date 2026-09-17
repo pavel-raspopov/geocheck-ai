@@ -34,7 +34,10 @@ const server = spawn(
   process.execPath,
   [
     path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'),
-    'preview', '--port', String(PORT), '--strictPort',
+    'preview',
+    '--port',
+    String(PORT),
+    '--strictPort',
   ],
   { cwd: root, stdio: 'ignore' },
 );

@@ -93,6 +93,10 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 ### 12 testdata-харнесс (`scripts/qa/testdata.mjs`)
 
 **Logic:** puppeteer-прогон связок `testdata/N-text.txt` × `testdata/N-photo*-true|false.jpg` через собранный `dist/`; сверка вердикта с суффиксом имени файла. Цель: 4/4 связки зелёные (2 задачи: 1 true + 2 false; 2: 1 true). Калибровка порогов/промпта при необходимости.
+**Done 2026-09-17** (`scripts/qa/testdata.mjs` + `pnpm qa:testdata`: свежая страница на связку → текст из `N-text.txt` → проверка оффлайн-парсера (фолбэк закрыт) → дроп фото → ε=10 (калибровка корпуса) → подтверждение → сверка overall-бейджа с суффиксом; 4/4 зелёные). Калибровка потребовала трёх изменений пайплайна:
+1. **OCR-подготовка** (`ocr-prep.ts`): белые поля 32 px + nearest-апскейл ×2 перед OCR (метки у края кадра и мелкие глифы; сглаживание ломает tesseract) — `recognizeLabels` возвращает координаты оригинала.
+2. **Refine-проход** (`ocr-refine.ts`): PSM 10 на кропах вокруг непомеченных вершин (пропуск рядом с помеченными ≤2·LABEL_RADIUS): тяжёлая маска (11 px) → центроид чернил → чтение с лёгкой маски (3 px), conf ≥ 80. Дочитывает K/M/C, слитые с линиями.
+3. **Точность графа** (`graph.ts`): пересечения поддерживающих прямых засчитываются в радиусе 26 px от концов (углы чертежа точнее концов Hough); концы, где ОБА отрезка заканчиваются у общего угла (≤13 px от пересечения), — перелёт, отбрасываются; union-find кластеризация вершин (радиус 12) вместо жадной. ε корпуса = 10 (максимум ползунка); дефолт ТЗ 3.0 в UI не менялся. Диагностика: `scripts/qa/diag-pipeline.mjs [--full|--refine] <image>`.
 
 ### 13 Live QA + доки
 
@@ -114,5 +118,5 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 - [x] 09 Rule engine v2 (Phase 6) (Done 2026-09-17)
 - [x] 10 Gemini fallback-клиент (Phase 6) (Done 2026-09-17)
 - [x] 11 UI v2: текст задачи + правила + подтверждение (Phase 6) (Done 2026-09-17)
-- [ ] 12 testdata-харнесс (Phase 6)
+- [x] 12 testdata-харнесс (Phase 6) (Done 2026-09-17: `pnpm qa:testdata` 4/4, ε=10; калибровка: OCR-подготовка pad+×2, refine-проход PSM 10, точные углы графа)
 - [ ] 13 Live QA + доки (Phase 6)
