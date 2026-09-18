@@ -1,6 +1,40 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-17 (Session 13)
+Last updated: 2026-09-18 (Session 14)
+
+
+## Session 14 — Phase 6/13: Live QA + доки — фаза 6 закрыта (acceptance + QA зелёные)
+
+### What was built
+
+- **Фича 13 реализована: `pnpm qa:all`** = build → `scripts/qa/ui-shell.mjs` (19/19, новый text→confirm-флоу уже покрыт шагами 2/4/14a) → `scripts/qa/testdata.mjs` (4/4, ε=10). Один прогон обеих headless-сюит на `dist/`; `pnpm qa` оставлен быстрым (только ui-shell).
+- README переписан под v2-флоу: блюр и «Возможности» (текст→правила через оффлайн-парсер, human-in-the-loop, Gemini-фолбэк с ключом только в localStorage, верификация всех правил); новые разделы «Как это работает: текст → правила → проверка» (5 шагов) и «Честные ограничения»; убрано устаревшее «полный анализ ≤ 3 s» (бюджет убран из ТЗ; refine ~3–5 s); «Структура» дополнена `pipeline/rules/`, `ocr-prep.ts`, `ocr-refine.ts`, `scripts/qa/`.
+- `context/build-plan.md` (13 done), `context/progress-tracker.md` (Phase 6 завершена), план фичи `docs/superpowers/plans/2026-09-18-live-qa-docs.md`.
+
+### Decisions made
+
+- **`qa:all` — отдельная связка, а не расширение `pnpm qa`**: corpus-прогон медленный и ε=10-специфичен; быстрый `pnpm qa` сохранён как основной UX-гейт (решение пользователя).
+- **AbortController отложен**: добавляется в `gemini.ts` только после живого CORS-чека, который подтвердит зависший fetch (решение пользователя; из песочницы egress заблокирован — см. Session 12).
+- Гейты: `pnpm test` 157/157, typecheck, lint 0/0, format:check, build, `pnpm qa:all` — все зелёные на `dist/`.
+
+### Problems solved
+
+- `format:check` падал на `context/build-plan.md` при чистом git-статусе (коммит Session 13 прошёл без формат-гейта): prettier хотел пустую строку перед заголовком `### 13`. `prettier --write` выровнял (git-diff пуст — нормализация концов строк); рабочее правило: **после правки context/*.md всегда прогонять `prettier --check .` до коммита**.
+
+### Current state
+
+- **Phase 6 закрыта (фичи 11, 12, 13 done).** Все гейты зелёные; `qa:all` 19/19 + 4/4; ui-registry актуален (UI-модули не менялись). Финальный коммит фазы — следующий шаг этой сессии.
+
+### Next session starts with
+
+- **Живой CORS-чек Gemini**: пользователь открывает `pnpm dev`/`preview`, вводит реальный ключ в поле фолбэка, нечитаемый текст → «Уточнить через ИИ». Если fetch зависает >60 с — AbortController в `gemini.ts` (TDD, отдельный коммит).
+- Опционально: ε-стабилизация (биссектриса задачи 1 = 9.48 при допуске 10 — корпус на грани).
+- Финальная заливка на GitHub.
+
+### Open questions
+
+- Живой CORS-чек Gemini REST (реальная сеть + ключ пользователя) — исход не проверен.
+- ε-запас 0.5 px: если правки сдвинут измерение, связка testdata 1 мигнёт.
 
 
 ## Session 13 — Phase 6/12: testdata-харнесс + калибровка пайплайна (acceptance 4/4)

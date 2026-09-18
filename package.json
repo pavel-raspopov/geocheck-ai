@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "qa": "pnpm build && node scripts/qa/ui-shell.mjs",
     "qa:testdata": "pnpm build && node scripts/qa/testdata.mjs",
+    "qa:all": "pnpm build && node scripts/qa/ui-shell.mjs && node scripts/qa/testdata.mjs",
     "shot": "pnpm build && node scripts/qa/screenshot.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
