@@ -45,7 +45,7 @@ geometry/
 6. **wiring** — `src/pipeline/run.ts` (`analyzeDrawing(image, rule, epsilon, deps?)`, async, no DOM): lines → dedup → ocr → graph → verify; returns `PipelineResult { segments, labels, vertices, graph, unboundLabels, verdict }` for the UI (verdict + overlay + soft-notes). Empty detection → soft error `[Status: Error] На чертеже не найдено отрезков`. OCR/CV stages are injectable via `PipelineDeps` (deterministic DI tests). Interop note: `@techstark/opencv-js` is UMD/CJS whose default export is a Promise — the bundler's `__toESM` wrapper inherits `Promise.prototype` and looks like a thenable, which breaks promise resolution (`TypeError: … incompatible receiver`); `src/pipeline/opencv-interop.ts` unwraps it at module level. UI rule: rule/ε changes after an analysis re-run only `verify()` on the stored graph — CV/OCR never re-runs implicitly.
 7. **text → rules (НОВАЯ стадия, Phase 6)** — `src/pipeline/rules/`:
    - **Основной путь:** оффлайн-парсер (`parseTask(text)` — чистая функция, TDD): нормализация кириллических омоглифов (А→A, В→B, С→C, К→K, М→M, Н→H, Е→E, О→O, Р→P, Т→T, Х→X; `<` → `∠`) → словарный разбор («медиана», «биссектриса», «высота», «перпендикуляр», «середина», «∠»/«<», «°», «параллельн», «=») → Rule-JSON. **Acceptance: обе testdata-задачи парсятся без ИИ.**
-   - **Фолбэк:** Gemini-клиент (`extractRulesGemini(text, apiKey, deps?)`) — REST `generativelanguage.googleapis.com`, `responseMimeType: application/json`, тот же Rule-JSON-контракт, DI-мок для тестов. Включается **только вручную** пользователем после просмотра результата парсера; API key вводится в UI (по желанию хранится в localStorage), никогда не в репозитории/`.env`.
+   - **Фолбэк:** Gemini-клиент (`extractRulesGemini(text, apiKey, deps?)`) — REST `generativelanguage.googleapis.com`, `responseMimeType: application/json`, тот же Rule-JSON-контракт, DI-мок для тестов. Включается **только вручную** пользователем после просмотра результата парсера; API key вводится в UI и **не сохраняется** — только память вкладки (решение 2026-09-18), никогда не в репозитории/`.env`/localStorage.
    - **Human-in-the-loop шлюз:** извлечённые правила (любым путём) показываются в UI человекочитаемым списком; верификация запускается только после явного подтверждения.
 
 ## Domain Types (`src/pipeline/types.ts`)
@@ -131,7 +131,7 @@ interface VerifyResult {
 
 ## Env & Secrets
 
-- **Без бэкенда и `.env`-ключей.** Решение (2026-09-17): дефолтный ключ в `.env` **не делаем** (в браузерном SPA `VITE_*` встраивается в бандл = публичный ключ; пользователь решил не хранить ключ вовсе). Google API key вводится пользователем в UI только для fallback-Gemini; опционально localStorage; никогда не в git.
+- **Без бэкенда и `.env`-ключей.** Решение (2026-09-17): дефолтный ключ в `.env` **не делаем** (в браузерном SPA `VITE_*` встраивается в бандл = публичный ключ; пользователь решил не хранить ключ вовсе). Google API key вводится пользователем в UI только для fallback-Gemini; **не хранится нигде — только память вкладки** (решение 2026-09-18, localStorage убран); никогда не в git.
 
 ## Critical Decisions
 
