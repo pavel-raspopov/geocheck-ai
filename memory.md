@@ -46,6 +46,9 @@ Last updated: 2026-09-18 (Session 14)
 - Favicon 404 убран: `public/favicon.svg` (буква G на accent #2563eb), `<link rel="icon">` в `index.html`; favicon-исключение из фильтра консоли QA удалено (шаг 16 теперь строже). Обсуждение безопасности ключа (открытый header + localStorage) — начато, решение за пользователем.
 - **Решение по безопасности ключа (2026-09-18): localStorage убран полностью — ключ живёт только в поле (память вкладки), исчезает при перезагрузке.** `gemini-fallback.ts`: STORAGE_KEY/чтение-запись localStorage удалены, hint переписан. Доки синхронизированы (README ×2, architecture ×2, ui-registry, PRODUCT, product-brief §6.2). HTTPS уже шифрует header в канале; клиентское шифрование — плацебо; реальное смягчение — ограничения ключа в Google Cloud (за пользователем).
 - **Busy-сообщение Gemini (TDD, +2 теста → 159/159):** HTTP 503/429 → `GEMINI_BUSY_ERROR` «Модель Gemini сейчас перегружена — попробуйте позже» (остальные не-2xx — прежняя мягкая ошибка). `app.ts` теперь показывает `result.error`, а не захардкоженную константу. Мотивация: эпизодические 503 high-demand у пользователя — не проблема запроса, повтор клика может пройти.
+- **`/feature-review` Phase 6 (2026-09-18): Layer 1 PASS, Layer 2 PASS, Layer 3 — 1 Important + 1 Minor, оба исправлены:**
+  1. *Important:* пустой список правил (`relations: []`, напр. Gemini ok-пустой) → был зелёный «Верно» без проверок (подтверждение активно, `evaluateRules([])` = Success). Фикс: `rules-preview.ts` блокирует confirm при пустых rules + подсказка «Правила не распознаны — отредактируйте текст или уточните через ИИ ниже»; движок остался нейтральным (семантика уже покрыта тестом «пустой relations → Success без результатов»).
+  2. *Minor:* `testdata.mjs` — favicon-вайтилист удалён, консоль corpus-прогона теперь полностью строгая (`realErrors = consoleNoise`).
 
 
 ## Session 13 — Phase 6/12: testdata-харнесс + калибровка пайплайна (acceptance 4/4)

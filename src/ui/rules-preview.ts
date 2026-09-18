@@ -49,8 +49,14 @@ export function createRulesPreview(onConfirm: () => void): RulesPreviewHandle {
           : task.source === 'gemini'
             ? 'Источник: Gemini'
             : 'Источник: оффлайн-парсер';
-      error.textContent = errorText ?? '';
-      confirm.disabled = task === null;
+      const noRules = task !== null && task.relations.length === 0;
+      // Пустой список правил (например, Gemini вернул ok с relations: []) —
+      // НЕ повод для зелёного вердикта: подтверждение блокируется с подсказкой
+      // (ревью Phase 6, 2026-09-18; движок остаётся нейтральным — Success на []).
+      error.textContent =
+        errorText ??
+        (noRules ? 'Правила не распознаны — отредактируйте текст или уточните через ИИ ниже' : '');
+      confirm.disabled = task === null || noRules;
     },
   };
 }

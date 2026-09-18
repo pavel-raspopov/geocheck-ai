@@ -167,9 +167,8 @@ try {
           `вердикт «${verdict}» ≠ ожидания «${expected}»; строки чеклиста: ${rows.join(' | ')}`,
         );
       }
-      const realErrors = consoleNoise.filter(
-        (e) => !(e.url.includes('favicon') && e.text.includes('404')),
-      );
+      // Строго как в ui-shell.mjs: favicon теперь есть, любой console-error — провал.
+      const realErrors = consoleNoise;
       if (realErrors.length > 0) {
         throw new Error(
           `консоль браузера с ошибками: ${realErrors
