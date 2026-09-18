@@ -49,6 +49,7 @@ Last updated: 2026-09-18 (Session 14)
 - **`/feature-review` Phase 6 (2026-09-18): Layer 1 PASS, Layer 2 PASS, Layer 3 — 1 Important + 1 Minor, оба исправлены:**
   1. *Important:* пустой список правил (`relations: []`, напр. Gemini ok-пустой) → был зелёный «Верно» без проверок (подтверждение активно, `evaluateRules([])` = Success). Фикс: `rules-preview.ts` блокирует confirm при пустых rules + подсказка «Правила не распознаны — отредактируйте текст или уточните через ИИ ниже»; движок остался нейтральным (семантика уже покрыта тестом «пустой relations → Success без результатов»).
   2. *Minor:* `testdata.mjs` — favicon-вайтилист удалён, консоль corpus-прогона теперь полностью строгая (`realErrors = consoleNoise`).
+- **GitHub About обновлён через `gh repo edit` (2026-09-18):** описание переписано под v2-флоу (текст → правила → per-rule verdict; OpenCV.js + Tesseract.js, vanilla TS, WASM only), топики + `gemini` + `education`. Ключ пользователя: AI Studio → «Restrict to Gemini API only» + ротация на auth-key — за пользователем. Нюанс: первый batch-вызов `gh repo edit` с несколькими флагами молча не применился — флаги разделять на отдельные вызовы и проверять `gh repo view --json` после каждого.
 
 
 ## Session 13 — Phase 6/12: testdata-харнесс + калибровка пайплайна (acceptance 4/4)
