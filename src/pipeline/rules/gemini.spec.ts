@@ -48,7 +48,7 @@ describe('extractRulesGemini (фолбэк: текст задачи → Rule-JSO
     expect(calls).toHaveLength(1);
     const { url, init } = calls[0] as Call;
     expect(url).toBe(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent',
     );
     expect(init?.method).toBe('POST');
     if (init?.headers === undefined) throw new Error('запрос обязан нести headers');

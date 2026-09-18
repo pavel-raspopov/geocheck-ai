@@ -82,7 +82,7 @@ Mirrors `context/project-brief.md`. Update `progress-tracker.md` after each item
 
 ### 10 Gemini fallback-клиент
 
-**Logic:** `extractRulesGemini(text, apiKey, deps?)` — REST `generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, strict prompt → Rule-JSON (`responseMimeType: application/json`), валидация, DI-мок для тестов. Невалидный ответ → мягкая ошибка. Вызывается ТОЛЬКО по явному действию пользователя (после просмотра результата парсера). API key — только из UI-поля; не в git, не в `.env`.
+**Logic:** `extractRulesGemini(text, apiKey, deps?)` — REST `generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, strict prompt → Rule-JSON (`responseMimeType: application/json`), валидация, DI-мок для тестов. Невалидный ответ → мягкая ошибка. Вызывается ТОЛЬКО по явному действию пользователя (после просмотра результата парсера). API key — только из UI-поля; не в git, не в `.env`.
 **Done 2026-09-17** (`src/pipeline/rules/gemini.ts` + spec: auth header `x-goog-api-key`, DI через минимальный структурный `FetchLike`; `validateRuleJson` — A–Z после trim+uppercase, per-kind проверки, points sort+dedup; мягкая ошибка `GEMINI_SOFT_ERROR` на network/не-2xx/битый JSON/нарушенный контракт; markdown-фенсы срезаются defensive; 10 тестов, 130/130. Живой CORS-чек перенесён в фичу 11 — нужен реальный ключ в браузере).
 
 ### 11 UI v2 (mock-first): текст задачи + предпросмотр правил + подтверждение

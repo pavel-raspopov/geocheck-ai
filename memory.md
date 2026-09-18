@@ -41,6 +41,7 @@ Last updated: 2026-09-18 (Session 14)
 - Dev-сервер поднят, приложение работает в Orca-вкладке; acceptance-связка 1 собрана удалённо: `orca upload --element e7 --files testdata/1-photo-true.jpg` (загрузка файла в инпут работает), текст из `testdata/1-text.txt` + ε=10 через `orca eval` (fetch `/@fs/…` + dispatch input — работает, кириллица без PowerShell-перекодировки).
 - **Не работает: синтетические `orca click`** — события клика не долетают до страницы (combobox/кнопка не реагируют), при этом `snapshot`/`upload`/`eval` работают. С мобильного клиента Orca редактировать поля тоже нельзя. → Живой CORS-чек Gemini переносится на локальный ноутбук пользователя (ключ вставляет пользователь; сеть реальная).
 - Инструкция пользователю для локального теста выдана: DevTools → Network (запрос к `generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, header `x-goog-api-key`) + Console (CORS/net-ошибки) + поведение кнопки фолбэка (busy → ответ/зависание).
+- **Результат живого чека (2026-09-18, ноутбук пользователя): fetch завершился — CORS/сеть РАБОТАЮТ, зависания нет → AbortController НЕ нужен.** Но ответ был **404: «use models/gemini-3.6-flash»** — модель `gemini-2.0-flash` устарела. TDD-фикс: `GEMINI_URL` → `gemini-3.6-flash` (спека + `gemini.ts`), доки `library-docs.md`/`build-plan.md` обновлены. Пользователь перепроверит endpoint тем же способом после пуша.
 
 
 ## Session 13 — Phase 6/12: testdata-харнесс + калибровка пайплайна (acceptance 4/4)
