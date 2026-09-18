@@ -8,8 +8,9 @@
  * Gotchas inherited from the cost-guard-ai QA harness:
  *   - `waitForFunction`/`evaluate` callbacks must be self-contained
  *     (closures over Node scope do NOT cross into the page);
- *   - Chrome logs some expected noise (favicon 404; the soft decode error of the broken-image step 12) as console
- *     errors — filtered explicitly below.
+ *   - Chrome logs some expected noise (the soft decode error of the broken-image step 12) as console
+ *     errors — filtered explicitly below. The favicon 404 filter was removed 2026-09-18:
+ *     `public/favicon.svg` ships a real icon, so any favicon miss is now a genuine failure.
  */
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -420,12 +421,11 @@ try {
     a11y.zoneRole && a11y.taskInLabel && a11y.epsInLabel && a11y.canvasAria,
   );
 
-  // 16. Консоль: ожидаемый шум — 404 favicon; ожидаемая мягкая ошибка декода
-  // битого изображения (шаг 12, «Не удалось прочитать изображение»). Остальное — провал.
+  // 16. Консоль: ожидаемая мягкая ошибка декода битого изображения
+  // (шаг 12, «Не удалось прочитать изображение»). Всё остальное — провал,
+  // включая 404 favicon (иконка `public/favicon.svg` теперь есть).
   const realErrors = consoleNoise.filter(
-    (e) =>
-      !(e.url.includes('favicon') && e.text.includes('404')) &&
-      !e.text.includes('Не удалось прочитать изображение'),
+    (e) => !e.text.includes('Не удалось прочитать изображение'),
   );
   check('консоль без ошибок', realErrors.length === 0);
   for (const e of realErrors) {
