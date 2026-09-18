@@ -1,5 +1,5 @@
 import { parseTask } from '../pipeline/rules/parse';
-import { extractRulesGemini, GEMINI_SOFT_ERROR } from '../pipeline/rules/gemini';
+import { extractRulesGemini } from '../pipeline/rules/gemini';
 import { evaluateRules, type RulesEvaluation } from '../pipeline/rules/rules-engine';
 import { analyzeImage, type AnalyzeResult } from '../pipeline/run';
 import { DEMO_DRAWINGS } from '../mock/demo-drawings';
@@ -251,7 +251,7 @@ export function createApp(root: HTMLElement): void {
         );
         updateStatusDot(null);
       } else {
-        fallback.setError(GEMINI_SOFT_ERROR);
+        fallback.setError(result.error);
       }
     } finally {
       state.extracting = false;

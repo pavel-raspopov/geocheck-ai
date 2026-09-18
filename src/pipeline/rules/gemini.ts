@@ -4,6 +4,11 @@ import type { AngleName, ParsedTask, ParseResult, Relation, Segment } from './ty
 /** Софт-ошибка фолбэка (контракт ТЗ / failure model в `architecture.md`). */
 export const GEMINI_SOFT_ERROR = '[Status: Error] Не удалось разобрать текст задачи';
 
+/** Busy-ошибка фолбэка: модель перегружена (503) или rate-limit (429) — не проблема
+ *  запроса пользователя, повтор клика может пройти (решение 2026-09-18 по живому чеку). */
+export const GEMINI_BUSY_ERROR =
+  '[Status: Error] Модель Gemini сейчас перегружена — попробуйте позже';
+
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent';
 
@@ -44,6 +49,7 @@ const ANGLE_RE = /^[A-Z]{3}$/;
 const POINT_RE = /^[A-Z]$/;
 
 const fail = (): ParseResult => ({ ok: false, error: GEMINI_SOFT_ERROR });
+const busy = (): ParseResult => ({ ok: false, error: GEMINI_BUSY_ERROR });
 
 function normalizeName(value: unknown, re: RegExp): string | null {
   if (typeof value !== 'string') return null;
@@ -169,7 +175,9 @@ export async function extractRulesGemini(
   } catch {
     return fail();
   }
-  if (!response.ok) return fail();
+  if (!response.ok) {
+    return response.status === 503 || response.status === 429 ? busy() : fail();
+  }
 
   let payload: unknown;
   try {

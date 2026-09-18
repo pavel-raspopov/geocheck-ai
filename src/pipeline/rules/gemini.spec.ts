@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractRulesGemini, GEMINI_SOFT_ERROR } from './gemini';
+import { extractRulesGemini, GEMINI_BUSY_ERROR, GEMINI_SOFT_ERROR } from './gemini';
 import type { FetchLike } from './gemini';
 
 interface Call {
@@ -125,6 +125,18 @@ describe('extractRulesGemini (фолбэк: текст задачи → Rule-JSO
     const { fetch } = fakeFetch({ error: { message: 'bad key' } }, false, 400);
     const result = await extractRulesGemini('текст', 'k', { fetchLike: fetch });
     expect(result).toEqual({ ok: false, error: GEMINI_SOFT_ERROR });
+  });
+
+  it('HTTP 503 (модель перегружена, high demand) → busy-сообщение «попробуйте позже»', async () => {
+    const { fetch } = fakeFetch({ error: { message: 'Service Unavailable' } }, false, 503);
+    const result = await extractRulesGemini('текст', 'k', { fetchLike: fetch });
+    expect(result).toEqual({ ok: false, error: GEMINI_BUSY_ERROR });
+  });
+
+  it('HTTP 429 (rate limit) → busy-сообщение «попробуйте позже»', async () => {
+    const { fetch } = fakeFetch({ error: { message: 'Resource exhausted' } }, false, 429);
+    const result = await extractRulesGemini('текст', 'k', { fetchLike: fetch });
+    expect(result).toEqual({ ok: false, error: GEMINI_BUSY_ERROR });
   });
 
   it('network reject от fetch → мягкая ошибка', async () => {
