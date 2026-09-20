@@ -226,6 +226,21 @@
 
 **Principle:** PowerShell's stderr-to-error-record redirection applies to native executables; never blanket-redirect native stderr through the PowerShell pipeline when the goal is just output capture.
 
+### Observation 16: PowerShell here-string + file append — trailing newline of the first chunk is unreliable
+
+**Status:** OPEN
+**Date:** 2026-09-20
+**Session context:** Writing docs/report.md (project report) in three chunks via [System.IO.File]::WriteAllText/AppendAllText with here-strings on Windows.
+**Skill:** (none — general PowerShell/file-append workflow)
+**Type:** open-source
+**Phase/Area:** docs authoring / Windows PowerShell file writes
+
+**Issue:** The second chunk (`AppendAllText`) landed on the same line as the first chunk's last line: `---## Основная часть`. The first chunk's trailing newline before the `@'` terminator was not preserved as expected, and a heading merged into a horizontal-rule line — invisible until a heading-structure check was run.
+
+**Suggested improvement:** When assembling files from multiple here-string chunks, append an explicit separator (`[Environment]::NewLine`) to every chunk except the first, and after assembly always verify structure (grep headings / prettier --check) before declaring done. `prettier --write` alone did NOT split the merged heading — text on the same line as `---` is treated as a paragraph.
+
+**Principle:** Structural verification (parse headings/tree) catches file-assembly defects that formatting tools silently pass through.
+
 ## Archive
 
 See `archive/` for closed observations (moved here during weekly reviews).

@@ -1,7 +1,26 @@
 # Memory — GeoCheck AI session log
 
-Last updated: 2026-09-18 (Session 14)
+Last updated: 2026-09-20 (Session 15)
 
+
+## Session 15 — docs: отчет по проекту (docs/report.md)
+
+### What was built
+
+- **`docs/report.md`** (~33 KB) — отчет по проекту по заданной структуре: Аннотация; Введение (актуальность, цель + KPI, задачи, объект/предмет исследования, гипотеза, обзор литературы); Основная часть (теория: пайплайн 6 стадий, детекция/дедупликация 5°/7 px, OCR-находки PSM 6/омоглифы/серые линии, таблица формул всех 8 правил, текст→правила, контракт ошибок; практика: стек, 157 тестов, QA 19/19 + testdata 4/4, честные ограничения ε=10); Заключение (цель достигнута, польза/сферы, 6 перспектив); список литературы — 12 источников (Canny, Hough/Duda-Hart, Otsu, Smith, OpenCV/Tesseract/Gemini docs, Атанасян, TS/Vitest/Vite).
+- Все факты сверены с README.md, product-brief.md, context/project-brief.md, context/architecture.md, context/progress-tracker.md. `pnpm format:check` — зелёный. Observation 16 в skill-observations/log.md (here-string append merges lines).
+
+### Decisions made
+
+- Гипотеза отчета сформулирована из сути проекта: конвейер чистых функций на WASM проверяет цифровые чертежи ≥95% за секунды целиком в браузере (пользователь уведомлен, что формулировка/оформление ГОСТ не проверялись).
+
+### Current state
+
+- Проект завершён в объёме ТЗ и Phase 6: живой CORS-чек Gemini закрыт ещё 2026-09-18 (fetch работает, AbortController не потребовался, модель → `gemini-3.6-flash`), GitHub-репозиторий (`origin/main`) уже залит. Сессия 15 — только docs (отчет); stale next-steps из Session 14 исправлены в memory/tracker/отчете тем же аменд-коммитом `feat(docs): project report`.
+
+### Next session starts with
+
+- Обязательных шагов нет — проект в фазе поддержки. Опционально: ε-стабилизация корпуса (запас 0.5 px у биссектрисы задачи 1); автоматический ретрай 503 в Gemini-фолбэке; расширение testdata-корпуса. Не забыть `git push` после аменда.
 
 ## Session 14 — Phase 6/13: Live QA + доки — фаза 6 закрыта (acceptance + QA зелёные)
 
